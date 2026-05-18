@@ -42,13 +42,25 @@ Always respond with ONLY a valid JSON object matching the schema. No prose, no m
 const SCHEMA_PROMPT = `Schema:
 {
   "verdict": "credible" | "suspicious" | "likely_fake",
-  "confidence": number 0-100 (your confidence in the verdict),
-  "summary": string (2-3 sentence plain-English summary of what the content claims and your assessment),
-  "reasoning": string (1 short paragraph explaining how you reached the verdict),
-  "risk_factors": [ { "label": string, "severity": "low"|"medium"|"high", "excerpt": string (optional short quote from the input) } ],
-  "highlighted_phrases": [ { "phrase": string (exact substring from the input, max 12 words), "reason": string } ],
-  "suggested_sources": [ { "name": string (must match one from the trusted list), "url": string (the URL of that source), "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string (a focused query a user can paste into that source's search) } ]
+  "confidence": number 0-100,
+  "summary": string (2-3 sentence plain-English summary of the claim and assessment),
+  "reasoning": string (1 short paragraph),
+  "risk_factors": [ { "label": string, "severity": "low"|"medium"|"high", "excerpt": string (optional) } ],
+  "highlighted_phrases": [ { "phrase": string (exact substring, max 12 words), "reason": string } ],
+  "suggested_sources": [ { "name": string (must match a trusted source name), "url": string (that source's homepage URL), "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string } ],
+  "verification_links": [ { "site_name": string (trusted source name), "label": string (short human-readable description of what the user will find, e.g. "Search Rappler for: MRT fare hike 2026"), "url": string (a WORKING url), "type": "supporting"|"debunking"|"context" } ]
 }
+
+CRITICAL rules for verification_links (this is the most important field):
+- Generate 4-7 links the user can click to verify the claim themselves.
+- Each "url" MUST be a real, working URL. Use Google site-restricted search URLs in this exact format:
+  https://www.google.com/search?q=site%3A<domain>+<url-encoded-keywords>
+  Example: https://www.google.com/search?q=site%3Arappler.com+MRT+fare+hike+2026
+- Pick the most distinctive 3-6 keywords from the claim (names, places, numbers, dates). URL-encode spaces as "+".
+- If verdict is "credible": link to MAINSTREAM PH outlets and GOVERNMENT sites where this news should appear if real (rappler.com, inquirer.net, news.abs-cbn.com, gmanetwork.com, philstar.com, mb.com.ph, pna.gov.ph, plus the relevant gov agency). type="supporting".
+- If verdict is "likely_fake" or "suspicious": link primarily to FACT-CHECKERS (verafiles.org, tsek.ph, rappler.com/newsbreak/fact-check, factcheck.afp.com, snopes.com, reuters.com/fact-check) where this claim is likely already debunked or being tracked. type="debunking". Add 1-2 mainstream outlets as type="context".
+- "label" must be human-readable like "Check VERA Files fact-check archive for: <keywords>" — never raw "site:" syntax.
+- "site_name" should match a name from the trusted source list when possible.
 
 Pick 3-6 suggested_sources most relevant to the topic. Always include at least 1 fact-checker.`;
 
@@ -104,6 +116,11 @@ export const analyzeContent = createServerFn({ method: "POST" })
       : [];
     parsed.suggested_sources = Array.isArray(parsed.suggested_sources)
       ? parsed.suggested_sources.slice(0, 8)
+      : [];
+    parsed.verification_links = Array.isArray(parsed.verification_links)
+      ? parsed.verification_links
+          .filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url))
+          .slice(0, 8)
       : [];
     parsed.input_text = data.text;
     parsed.input_url = data.url ?? null;

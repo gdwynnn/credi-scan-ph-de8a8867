@@ -20,6 +20,15 @@ export interface SuggestedSource {
   search_query: string;
 }
 
+export type VerificationLinkType = "supporting" | "debunking" | "context";
+
+export interface VerificationLink {
+  site_name: string;
+  label: string;
+  url: string;
+  type: VerificationLinkType;
+}
+
 export interface AnalysisResult {
   id?: string;
   verdict: Verdict;
@@ -29,6 +38,7 @@ export interface AnalysisResult {
   risk_factors: RiskFactor[];
   highlighted_phrases: HighlightedPhrase[];
   suggested_sources: SuggestedSource[];
+  verification_links?: VerificationLink[];
   input_text: string;
   input_url?: string | null;
   created_at?: string;
