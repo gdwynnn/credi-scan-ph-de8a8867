@@ -131,11 +131,11 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
                 <div className="grid sm:grid-cols-2 gap-2">
                   {grouped[cat].map((s, i) => {
                     const directory = PH_TRUSTED_SOURCES.find((d) => d.name === s.name);
-                    const searchHref = directory ? directory.searchUrl(s.search_query) : s.url;
+                    const homeHref = directory ? directory.url : s.url;
                     return (
                       <a
                         key={i}
-                        href={searchHref}
+                        href={homeHref}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="group border border-border rounded-md p-3 hover:border-accent hover:bg-accent/5 transition-colors"
@@ -145,7 +145,7 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
                           <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-accent" />
                         </div>
                         <p className="text-xs text-muted-foreground mt-1 line-clamp-1">
-                          Search: "{s.search_query}"
+                          {directory?.description ?? homeHref}
                         </p>
                       </a>
                     );
