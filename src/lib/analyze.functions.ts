@@ -119,9 +119,9 @@ export const analyzeContent = createServerFn({ method: "POST" })
           confidence: parsed.confidence,
           summary: parsed.summary,
           reasoning: parsed.reasoning ?? null,
-          risk_factors: parsed.risk_factors as unknown as object,
-          highlighted_phrases: parsed.highlighted_phrases as unknown as object,
-          suggested_sources: parsed.suggested_sources as unknown as object,
+          risk_factors: JSON.parse(JSON.stringify(parsed.risk_factors)),
+          highlighted_phrases: JSON.parse(JSON.stringify(parsed.highlighted_phrases)),
+          suggested_sources: JSON.parse(JSON.stringify(parsed.suggested_sources)),
         })
         .select("id, created_at")
         .single();
