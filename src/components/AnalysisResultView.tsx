@@ -1,7 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, AlertTriangle, ShieldCheck, ShieldAlert } from "lucide-react";
-import type { AnalysisResult } from "@/lib/analysis-types";
+import { ExternalLink, AlertTriangle, ShieldCheck, ShieldAlert, CheckCircle2, XCircle, Info } from "lucide-react";
+import type { AnalysisResult, VerificationLinkType } from "@/lib/analysis-types";
 import { VERDICT_META } from "@/lib/analysis-types";
 import { CATEGORY_LABELS, PH_TRUSTED_SOURCES, type SourceCategory } from "@/lib/trusted-sources";
 
