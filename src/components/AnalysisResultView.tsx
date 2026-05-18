@@ -118,10 +118,59 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
         </Card>
       </div>
 
+      {result.verification_links && result.verification_links.length > 0 && (
+        <Card className="p-5 border-2" style={{ borderColor: meta.tone === "success" ? "var(--color-success)" : meta.tone === "warning" ? "var(--color-warning)" : "var(--color-danger)" }}>
+          <h3 className="font-serif text-lg mb-1">
+            {meta.tone === "success"
+              ? "Where this story should appear if real"
+              : meta.tone === "danger"
+                ? "Where this claim has likely been debunked"
+                : "Cross-check this claim directly"}
+          </h3>
+          <p className="text-xs text-muted-foreground mb-4">
+            {meta.tone === "success"
+              ? "Click any link to search trusted Philippine outlets for matching coverage."
+              : meta.tone === "danger"
+                ? "Click any link to look up this claim on Philippine and international fact-checkers."
+                : "Click to search this claim across trusted sources before sharing."}
+          </p>
+          <div className="grid sm:grid-cols-2 gap-2">
+            {result.verification_links.map((link, i) => {
+              const typeMeta: Record<VerificationLinkType, { Icon: typeof CheckCircle2; color: string; label: string }> = {
+                supporting: { Icon: CheckCircle2, color: "var(--color-success)", label: "Supporting" },
+                debunking: { Icon: XCircle, color: "var(--color-danger)", label: "Fact-check" },
+                context: { Icon: Info, color: "var(--color-warning)", label: "Context" },
+              };
+              const t = typeMeta[link.type] ?? typeMeta.context;
+              const TIcon = t.Icon;
+              return (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="group border border-border rounded-md p-3 hover:border-accent hover:bg-accent/5 transition-colors flex items-start gap-3"
+                >
+                  <TIcon className="h-4 w-4 mt-0.5 shrink-0" style={{ color: t.color }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-sm font-medium truncate">{link.site_name}</span>
+                      <ExternalLink className="h-3.5 w-3.5 text-muted-foreground group-hover:text-accent shrink-0" />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{link.label}</p>
+                    <Badge variant="outline" className="text-[10px] uppercase mt-1.5">{t.label}</Badge>
+                  </div>
+                </a>
+              );
+            })}
+          </div>
+        </Card>
+      )}
+
       <Card className="p-5">
-        <h3 className="font-serif text-lg mb-1">Legit Check — Verify with trusted sources</h3>
+        <h3 className="font-serif text-lg mb-1">Browse trusted sources</h3>
         <p className="text-xs text-muted-foreground mb-4">
-          Cross-reference this content against established Philippine outlets and fact-checkers before sharing.
+          Open the homepages of established Philippine outlets and fact-checkers.
         </p>
         <div className="space-y-5">
           {(Object.keys(grouped) as SourceCategory[]).map((cat) =>
