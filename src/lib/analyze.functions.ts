@@ -117,6 +117,11 @@ export const analyzeContent = createServerFn({ method: "POST" })
     parsed.suggested_sources = Array.isArray(parsed.suggested_sources)
       ? parsed.suggested_sources.slice(0, 8)
       : [];
+    parsed.verification_links = Array.isArray(parsed.verification_links)
+      ? parsed.verification_links
+          .filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url))
+          .slice(0, 8)
+      : [];
     parsed.input_text = data.text;
     parsed.input_url = data.url ?? null;
 
