@@ -7,6 +7,10 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { Toaster } from "@/components/ui/sonner";
+import { SiteHeader, SiteFooter } from "@/components/SiteChrome";
+import { supabase } from "@/integrations/supabase/client";
 
 import appCss from "../styles.css?url";
 
