@@ -46,11 +46,10 @@ export function SiteHeader() {
 export function SiteFooter() {
   return (
     <footer className="border-t border-border mt-16">
-      <div className="mx-auto max-w-5xl px-6 py-8 text-xs text-muted-foreground flex flex-wrap justify-between gap-4">
+      <div className="mx-auto max-w-5xl px-6 py-8 text-xs text-muted-foreground">
         <p>
           CrediScan © {new Date().getFullYear()} — A decision-support tool. Always cross-check with primary sources.
         </p>
-        <p>Built with NLP and Lovable AI for the Philippine information ecosystem.</p>
       </div>
     </footer>
   );
