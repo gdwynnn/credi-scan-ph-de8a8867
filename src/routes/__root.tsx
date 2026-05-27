@@ -83,13 +83,19 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           "AI-powered fake news detector tuned for Philippine context. Paste an article or URL and get a credibility verdict, risk factors, and trusted PH sources to verify the claim.",
       },
       { name: "author", content: "CrediScan" },
-      { property: "og:title", content: "CrediScan — PH Fake News Detector" },
+      { property: "og:title", content: "CrediScan — Fake News Detection for the Philippines" },
       {
         property: "og:description",
         content: "Spot misinformation faster with AI tuned for the Philippine news ecosystem.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "CrediScan — Fake News Detection for the Philippines" },
+      { name: "description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },
+      { property: "og:description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },
+      { name: "twitter:description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4e88953b-f2ce-4b02-8c7a-2acf4701caca/id-preview-eb4735e9--7f41939f-00fc-45ed-8e64-e4ac8519d49b.lovable.app-1779241012982.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/4e88953b-f2ce-4b02-8c7a-2acf4701caca/id-preview-eb4735e9--7f41939f-00fc-45ed-8e64-e4ac8519d49b.lovable.app-1779241012982.png" },
     ],
     links: [
       {
