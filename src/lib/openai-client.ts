@@ -75,12 +75,50 @@ export interface ChatTurn {
   content: string;
 }
 
+// --- Single-flight queue + minimum spacing between requests ---------------
+// Gemini free tier has per-minute caps (RPM + TPM). Serializing calls and
+// spacing them out prevents bursts that trip 429s.
+const MIN_INTERVAL_MS = 6500; // ~9 requests/min ceiling, well under 15 RPM
+let chain: Promise<unknown> = Promise.resolve();
+let lastCallAt = 0;
+
+function enqueue<T>(task: () => Promise<T>): Promise<T> {
+  const run = chain.then(async () => {
+    const wait = Math.max(0, lastCallAt + MIN_INTERVAL_MS - Date.now());
+    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+    try {
+      return await task();
+    } finally {
+      lastCallAt = Date.now();
+    }
+  });
+  chain = run.catch(() => {});
+  return run as Promise<T>;
+}
+
+function parseRetryDelayMs(body: string): number {
+  // Gemini returns RetryInfo.retryDelay like "17s" or "1.5s"
+  const m = body.match(/"retryDelay"\s*:\s*"([\d.]+)s"/);
+  if (m) return Math.ceil(parseFloat(m[1]) * 1000);
+  return 0;
+}
+
+async function callGeminiOnce(body: string): Promise<Response> {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    GEMINI_MODEL,
+  )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+  return fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body,
+  });
+}
+
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
   if (!hasGeminiKey()) {
     throw new Error("Missing VITE_GEMINI_API_KEY. Add it to your .env file and restart the dev server.");
   }
 
-  // Gemini uses roles "user" and "model"
   const contents = [
     ...history.slice(-10).map((m) => ({
       role: m.role === "assistant" ? "model" : "user",
@@ -92,30 +130,44 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     },
   ];
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
-    GEMINI_MODEL,
-  )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
-      contents,
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.4,
-      },
-    }),
+  const body = JSON.stringify({
+    systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+    contents,
+    generationConfig: { responseMimeType: "application/json", temperature: 0.4 },
   });
 
-  if (!res.ok) {
-    const body = await res.text();
-    if (res.status === 401 || res.status === 403)
-      throw new Error("Gemini rejected the API key. Check VITE_GEMINI_API_KEY.");
-    if (res.status === 429) throw new Error("Gemini rate limit reached. Try again in a moment.");
-    throw new Error(`Gemini error [${res.status}]: ${body.slice(0, 300)}`);
-  }
+  const res = await enqueue(async () => {
+    const MAX_ATTEMPTS = 4;
+    let lastBody = "";
+    let lastStatus = 0;
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+      const r = await callGeminiOnce(body);
+      if (r.ok) return r;
+      lastStatus = r.status;
+      lastBody = await r.text();
+
+      if (r.status === 401 || r.status === 403) {
+        throw new Error("Gemini rejected the API key. Check VITE_GEMINI_API_KEY.");
+      }
+      if (r.status === 429 || r.status === 503) {
+        if (attempt === MAX_ATTEMPTS) break;
+        const retryAfter = parseRetryDelayMs(lastBody);
+        // Honor server hint, otherwise exponential backoff: 2s, 4s, 8s
+        const backoff = retryAfter > 0 ? retryAfter + 500 : 2000 * 2 ** (attempt - 1);
+        await new Promise((res2) => setTimeout(res2, Math.min(backoff, 30_000)));
+        continue;
+      }
+      // Other errors: don't retry
+      break;
+    }
+    if (lastStatus === 429) {
+      throw new Error(
+        "Gemini quota exceeded. The free tier allows ~15 requests/min and a daily cap — wait a moment, or check that your API key is enrolled in the free tier at aistudio.google.com/app/apikey.",
+      );
+    }
+    throw new Error(`Gemini error [${lastStatus}]: ${lastBody.slice(0, 300)}`);
+  });
+
 
   const json = await res.json();
   const raw: string | undefined = json?.candidates?.[0]?.content?.parts
