@@ -1,9 +1,16 @@
 import type { AnalysisResult, Verdict } from "./analysis-types";
 
-export const OPENAI_API_KEY = (import.meta.env.VITE_OPENAI_API_KEY as string | undefined) ?? "";
-export const OPENAI_MODEL = (import.meta.env.VITE_OPENAI_MODEL as string | undefined) || "gpt-4o-mini";
+// NOTE: Filename kept for backward compatibility — this module now talks to
+// Google's Gemini API (free tier) instead of OpenAI.
+export const GEMINI_API_KEY = (import.meta.env.VITE_GEMINI_API_KEY as string | undefined) ?? "";
+export const GEMINI_MODEL = (import.meta.env.VITE_GEMINI_MODEL as string | undefined) || "gemini-2.0-flash";
 
-export const hasOpenAIKey = () => OPENAI_API_KEY.trim().length > 0;
+// Legacy aliases (other files may still import these names)
+export const OPENAI_API_KEY = GEMINI_API_KEY;
+export const OPENAI_MODEL = GEMINI_MODEL;
+
+export const hasOpenAIKey = () => GEMINI_API_KEY.trim().length > 0;
+export const hasGeminiKey = hasOpenAIKey;
 
 export interface AssistantArticle {
   headline: string;
@@ -69,49 +76,63 @@ export interface ChatTurn {
 }
 
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
-  if (!hasOpenAIKey()) {
-    throw new Error("Missing VITE_OPENAI_API_KEY. Add it to your .env file and restart the dev server.");
+  if (!hasGeminiKey()) {
+    throw new Error("Missing VITE_GEMINI_API_KEY. Add it to your .env file and restart the dev server.");
   }
 
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: `${SCHEMA}\n\nUser request:\n"""\n${userQuery}\n"""` },
+  // Gemini uses roles "user" and "model"
+  const contents = [
+    ...history.slice(-10).map((m) => ({
+      role: m.role === "assistant" ? "model" : "user",
+      parts: [{ text: m.content }],
+    })),
+    {
+      role: "user",
+      parts: [{ text: `${SCHEMA}\n\nUser request:\n"""\n${userQuery}\n"""` }],
+    },
   ];
 
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(
+    GEMINI_MODEL,
+  )}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+
+  const res = await fetch(url, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${OPENAI_API_KEY}`,
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      model: OPENAI_MODEL,
-      messages,
-      response_format: { type: "json_object" },
-      temperature: 0.4,
+      systemInstruction: { parts: [{ text: SYSTEM_PROMPT }] },
+      contents,
+      generationConfig: {
+        responseMimeType: "application/json",
+        temperature: 0.4,
+      },
     }),
   });
 
   if (!res.ok) {
     const body = await res.text();
-    if (res.status === 401) throw new Error("OpenAI rejected the API key. Check VITE_OPENAI_API_KEY.");
-    if (res.status === 429) throw new Error("OpenAI rate limit reached. Try again in a moment.");
-    throw new Error(`OpenAI error [${res.status}]: ${body.slice(0, 200)}`);
+    if (res.status === 401 || res.status === 403)
+      throw new Error("Gemini rejected the API key. Check VITE_GEMINI_API_KEY.");
+    if (res.status === 429) throw new Error("Gemini rate limit reached. Try again in a moment.");
+    throw new Error(`Gemini error [${res.status}]: ${body.slice(0, 300)}`);
   }
 
   const json = await res.json();
-  const raw = json?.choices?.[0]?.message?.content;
-  if (!raw) throw new Error("Empty response from OpenAI.");
+  const raw: string | undefined = json?.candidates?.[0]?.content?.parts
+    ?.map((p: { text?: string }) => p?.text ?? "")
+    .join("");
+  if (!raw) throw new Error("Empty response from Gemini.");
 
   let parsed: AssistantTurn;
   try {
     parsed = JSON.parse(raw);
   } catch {
-    throw new Error("Assistant returned malformed JSON.");
+    // Try to extract a JSON object from any wrapping prose / fences.
+    const match = raw.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error("Assistant returned malformed JSON.");
+    parsed = JSON.parse(match[0]);
   }
 
-  // Normalize analysis
   if (parsed.analysis) {
     const allowed: Verdict[] = ["credible", "suspicious", "likely_fake"];
     if (!allowed.includes(parsed.analysis.verdict)) parsed.analysis.verdict = "suspicious";
@@ -122,7 +143,6 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     parsed.analysis.verification_links = Array.isArray(parsed.analysis.verification_links)
       ? parsed.analysis.verification_links.filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url)).slice(0, 8)
       : [];
-    // Stuff article body into input_text so AnalysisResultView's NLP features have material to work on.
     if (parsed.article) {
       parsed.analysis.input_text = `${parsed.article.headline}\n\n${parsed.article.body}`;
       parsed.analysis.input_url = null;

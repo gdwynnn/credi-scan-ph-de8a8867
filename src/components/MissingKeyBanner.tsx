@@ -12,24 +12,25 @@ export function MissingKeyBanner() {
           <div>
             <h2 className="text-base font-semibold">Missing API Key</h2>
             <p className="text-muted-foreground mt-1">
-              CrediScan needs an OpenAI API key to run the conversational assistant. The app won't
-              crash — but no analyses can be performed until a key is configured.
+              CrediScan needs a Google Gemini API key (free tier) to run the conversational
+              assistant. The app won't crash — but no analyses can be performed until a key is
+              configured.
             </p>
           </div>
           <div className="rounded-md bg-muted px-4 py-3 font-mono text-xs">
             <div className="text-muted-foreground"># Add to .env in the project root</div>
-            VITE_OPENAI_API_KEY=sk-your-key-here
+            VITE_GEMINI_API_KEY=your-gemini-key-here
           </div>
           <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
             <li>
-              Create a key at{" "}
+              Create a free key at{" "}
               <a
                 className="underline text-foreground"
-                href="https://platform.openai.com/api-keys"
+                href="https://aistudio.google.com/app/apikey"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                platform.openai.com/api-keys
+                aistudio.google.com/app/apikey
               </a>
               .
             </li>
