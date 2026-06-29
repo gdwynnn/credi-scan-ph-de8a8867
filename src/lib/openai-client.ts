@@ -139,7 +139,7 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
 
   const messages = [
     { role: "system", content: SYSTEM_PROMPT },
-    ...history.slice(-10).map((m) => ({ role: m.role, content: m.content })),
+    ...history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
     { role: "user", content: `${SCHEMA}\n\nUser request:\n"""\n${userQuery}\n"""` },
   ];
 
