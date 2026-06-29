@@ -67,7 +67,7 @@ export function ChatView({ threadId, userId, onThreadCreated }: Props) {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
     if (!hasOpenAIKey()) {
-      toast.error("Set VITE_GEMINI_API_KEY in your .env file first.");
+      toast.error("Set VITE_GROQ_API_KEY in your .env file first.");
       return;
     }
 
