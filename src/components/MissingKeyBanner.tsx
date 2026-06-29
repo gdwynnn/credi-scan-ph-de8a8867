@@ -12,25 +12,25 @@ export function MissingKeyBanner() {
           <div>
             <h2 className="text-base font-semibold">Missing API Key</h2>
             <p className="text-muted-foreground mt-1">
-              CrediScan needs a Google Gemini API key (free tier) to run the conversational
+              CrediScan needs a Groq API key (free tier) to run the conversational
               assistant. The app won't crash — but no analyses can be performed until a key is
               configured.
             </p>
           </div>
           <div className="rounded-md bg-muted px-4 py-3 font-mono text-xs">
             <div className="text-muted-foreground"># Add to .env in the project root</div>
-            VITE_GEMINI_API_KEY=your-gemini-key-here
+            VITE_GROQ_API_KEY=your-groq-key-here
           </div>
           <ol className="list-decimal pl-5 space-y-1 text-muted-foreground">
             <li>
               Create a free key at{" "}
               <a
                 className="underline text-foreground"
-                href="https://aistudio.google.com/app/apikey"
+                href="https://console.groq.com/keys"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                aistudio.google.com/app/apikey
+                console.groq.com/keys
               </a>
               .
             </li>
