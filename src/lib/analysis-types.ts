@@ -29,6 +29,27 @@ export interface VerificationLink {
   type: VerificationLinkType;
 }
 
+// ---------------------------------------------------------------------------
+// Credibility Coalition — Content Credibility Indicators (v1.1)
+// Published rubric ("instrument") the AI must score every claim against.
+// https://credibilitycoalition.org/credco-schema/
+
+export type IndicatorGroup = "content" | "context" | "publisher";
+export type IndicatorScore = "pass" | "fail" | "mixed" | "not_applicable";
+
+export interface CredibilityIndicator {
+  id: string;
+  group: IndicatorGroup;
+  name: string;
+  score: IndicatorScore;
+  justification: string;
+}
+
+export const INSTRUMENT_NAME =
+  "Credibility Coalition — Content Credibility Indicators (v1.1)";
+
+// ---------------------------------------------------------------------------
+
 export interface AnalysisResult {
   id?: string;
   verdict: Verdict;
@@ -39,6 +60,7 @@ export interface AnalysisResult {
   highlighted_phrases: HighlightedPhrase[];
   suggested_sources: SuggestedSource[];
   verification_links?: VerificationLink[];
+  credibility_indicators?: CredibilityIndicator[];
   input_text: string;
   input_url?: string | null;
   created_at?: string;

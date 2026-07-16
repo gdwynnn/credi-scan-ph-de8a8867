@@ -1,6 +1,5 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
-import { UserMenu } from "./UserMenu";
 
 export function SiteHeader() {
   return (
@@ -17,9 +16,6 @@ export function SiteHeader() {
             </div>
           </div>
         </Link>
-        <nav className="flex items-center gap-6">
-          <UserMenu />
-        </nav>
       </div>
     </header>
   );
