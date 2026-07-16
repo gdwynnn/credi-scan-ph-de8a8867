@@ -497,3 +497,124 @@ function ModelLayer({ step, title, desc }: { step: number; title: string; desc: 
     </li>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Credibility Coalition — Content Credibility Indicators scorecard
+
+const GROUP_META: Record<CredibilityIndicator["group"], { label: string; blurb: string }> = {
+  content: { label: "Content", blurb: "Signals from the article itself" },
+  context: { label: "Context", blurb: "How the claim sits in the wider ecosystem" },
+  publisher: { label: "Publisher", blurb: "Who is publishing and their track record" },
+};
+
+const SCORE_META: Record<
+  CredibilityIndicator["score"],
+  { label: string; color: string; bg: string }
+> = {
+  pass: {
+    label: "Pass",
+    color: "var(--color-success)",
+    bg: "color-mix(in oklab, var(--color-success) 14%, transparent)",
+  },
+  mixed: {
+    label: "Mixed",
+    color: "var(--color-warning)",
+    bg: "color-mix(in oklab, var(--color-warning) 18%, transparent)",
+  },
+  fail: {
+    label: "Fail",
+    color: "var(--color-danger)",
+    bg: "color-mix(in oklab, var(--color-danger) 14%, transparent)",
+  },
+  not_applicable: {
+    label: "N/A",
+    color: "var(--color-muted-foreground)",
+    bg: "var(--color-muted)",
+  },
+};
+
+function humanizeName(name: string) {
+  return name
+    .replace(/_/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function IndicatorScorecard({ indicators }: { indicators: CredibilityIndicator[] }) {
+  const groups: CredibilityIndicator["group"][] = ["content", "context", "publisher"];
+  const passes = indicators.filter((i) => i.score === "pass").length;
+  const fails = indicators.filter((i) => i.score === "fail").length;
+  const mixed = indicators.filter((i) => i.score === "mixed").length;
+
+  return (
+    <section>
+      <SectionTitle
+        title="Credibility Instrument Scorecard"
+        subtitle={`Scored against the ${INSTRUMENT_NAME}. This is the published rubric the AI must follow — like WCAG for accessibility.`}
+      />
+      <Card className="p-5">
+        <div className="flex flex-wrap gap-2 mb-5 text-xs">
+          <Badge
+            className="border-0"
+            style={{ backgroundColor: SCORE_META.pass.bg, color: SCORE_META.pass.color }}
+          >
+            {passes} Pass
+          </Badge>
+          <Badge
+            className="border-0"
+            style={{ backgroundColor: SCORE_META.mixed.bg, color: SCORE_META.mixed.color }}
+          >
+            {mixed} Mixed
+          </Badge>
+          <Badge
+            className="border-0"
+            style={{ backgroundColor: SCORE_META.fail.bg, color: SCORE_META.fail.color }}
+          >
+            {fails} Fail
+          </Badge>
+        </div>
+
+        <div className="space-y-6">
+          {groups.map((g) => {
+            const items = indicators.filter((i) => i.group === g);
+            if (items.length === 0) return null;
+            return (
+              <div key={g}>
+                <div className="mb-2">
+                  <div className="text-sm font-semibold">{GROUP_META[g].label}</div>
+                  <div className="text-xs text-muted-foreground">{GROUP_META[g].blurb}</div>
+                </div>
+                <ul className="space-y-2">
+                  {items.map((ind) => {
+                    const s = SCORE_META[ind.score] ?? SCORE_META.not_applicable;
+                    return (
+                      <li
+                        key={ind.id}
+                        className="flex items-start gap-3 rounded-md border p-3"
+                      >
+                        <div className="font-mono text-[10px] uppercase tracking-wider text-muted-foreground pt-0.5 w-8 shrink-0">
+                          {ind.id}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-medium">{humanizeName(ind.name)}</div>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            {ind.justification}
+                          </p>
+                        </div>
+                        <Badge
+                          className="uppercase text-[10px] font-semibold border-0 shrink-0"
+                          style={{ backgroundColor: s.bg, color: s.color }}
+                        >
+                          {s.label}
+                        </Badge>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            );
+          })}
+        </div>
+      </Card>
+    </section>
+  );
+}
