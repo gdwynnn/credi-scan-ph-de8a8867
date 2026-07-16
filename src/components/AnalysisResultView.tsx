@@ -22,8 +22,8 @@ import {
   Cell,
   CartesianGrid,
 } from "recharts";
-import type { AnalysisResult, VerificationLink } from "@/lib/analysis-types";
-import { VERDICT_META } from "@/lib/analysis-types";
+import type { AnalysisResult, CredibilityIndicator, VerificationLink } from "@/lib/analysis-types";
+import { INSTRUMENT_NAME, VERDICT_META } from "@/lib/analysis-types";
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 
