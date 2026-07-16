@@ -12,17 +12,14 @@ import { hasOpenAIKey, runAssistant, type ChatTurn } from "@/lib/openai-client";
 import {
   appendAssistantMessage,
   appendUserMessage,
-  createConversation,
+  createThread,
+  ensureThread,
   loadMessages,
-  renameConversation,
   type MessageRow,
-} from "@/lib/conversations";
-import { supabase } from "@/integrations/supabase/client";
+} from "@/lib/local-chats";
 
 interface Props {
   threadId: string | null;
-  userId: string | null;
-  onThreadCreated?: (id: string) => void;
 }
 
 const STARTERS = [
@@ -32,33 +29,28 @@ const STARTERS = [
   "May Facebook post na sabi ₱10,000 ang matatanggap ng bawat estudyante. Totoo ba?",
 ];
 
-export function ChatView({ threadId, userId, onThreadCreated }: Props) {
+export function ChatView({ threadId }: Props) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
-  const [loadingHistory, setLoadingHistory] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
-  // Reset + load when thread changes
+  // Load messages when thread changes
   useEffect(() => {
-    setMessages([]);
     if (threadId) {
-      setLoadingHistory(true);
-      loadMessages(threadId)
-        .then(setMessages)
-        .catch((e) => toast.error(e instanceof Error ? e.message : "Failed to load conversation"))
-        .finally(() => setLoadingHistory(false));
+      ensureThread(threadId);
+      setMessages(loadMessages(threadId));
+    } else {
+      setMessages([]);
     }
   }, [threadId]);
 
-  // Focus textarea on mount & after sending
   useEffect(() => {
     taRef.current?.focus();
   }, [threadId, sending]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [messages.length, sending]);
@@ -75,78 +67,30 @@ export function ChatView({ threadId, userId, onThreadCreated }: Props) {
     setInput("");
 
     try {
-      // Ensure a thread exists (auth required for persistence)
+      // Ensure a thread exists — create one on first send from the home page
       let tId = threadId;
       let created = false;
       if (!tId) {
-        if (!userId) {
-          // Local-only single message — push to UI but no DB persistence
-          await runEphemeral(text);
-          return;
-        }
-        const conv = await createConversation(userId, text.slice(0, 60));
-        tId = conv.id;
+        const t = createThread(text.slice(0, 60));
+        tId = t.id;
         created = true;
-        onThreadCreated?.(tId);
       }
 
-      // Optimistic user message
-      const optimisticUser: MessageRow = {
-        id: `tmp-${Date.now()}`,
-        conversation_id: tId,
-        role: "user",
-        content: text,
-        analysis: null,
-        created_at: new Date().toISOString(),
-      };
-      setMessages((m) => [...m, optimisticUser]);
+      // Optimistic + persist user message
+      const savedUser = appendUserMessage(tId, text);
+      setMessages((m) => [...m, savedUser]);
 
-      // Persist user message
-      let savedUser: MessageRow | null = null;
-      try {
-        savedUser = await appendUserMessage(tId, text);
-        setMessages((m) => m.map((x) => (x.id === optimisticUser.id ? savedUser! : x)));
-      } catch (e) {
-        console.error("Failed to save user message", e);
-      }
-
-      // Build history from existing messages (excluding optimistic)
-      const history: ChatTurn[] = messages
-        .filter((m) => !m.id.startsWith("tmp-"))
-        .map((m) => ({ role: m.role, content: m.content }));
+      // Build history from the messages we had before this send
+      const history: ChatTurn[] = messages.map((m) => ({ role: m.role, content: m.content }));
 
       const turn = await runAssistant(history, text);
 
-      const optimisticAsst: MessageRow = {
-        id: `tmp-a-${Date.now()}`,
-        conversation_id: tId,
-        role: "assistant",
-        content: turn.assistant_message,
-        analysis: {
-          assistant_message: turn.assistant_message,
-          article: turn.article,
-          analysis: turn.analysis,
-        },
-        created_at: new Date().toISOString(),
-      };
-      setMessages((m) => [...m, optimisticAsst]);
-
-      try {
-        const savedA = await appendAssistantMessage(tId, turn.assistant_message, {
-          assistant_message: turn.assistant_message,
-          article: turn.article,
-          analysis: turn.analysis,
-        });
-        setMessages((m) => m.map((x) => (x.id === optimisticAsst.id ? savedA : x)));
-      } catch (e) {
-        console.error("Failed to save assistant message", e);
-      }
-
-      // Rename newly created conversation based on the article headline if available
-      if (created && turn.article?.headline) {
-        const title = turn.article.headline.slice(0, 80);
-        renameConversation(tId, title).catch(() => {});
-      }
+      const savedA = appendAssistantMessage(tId, turn.assistant_message, {
+        assistant_message: turn.assistant_message,
+        article: turn.article,
+        analysis: turn.analysis,
+      });
+      setMessages((m) => [...m, savedA]);
 
       if (created) {
         navigate({ to: "/c/$threadId", params: { threadId: tId }, replace: true });
@@ -158,37 +102,7 @@ export function ChatView({ threadId, userId, onThreadCreated }: Props) {
     }
   }
 
-  // Fallback when user is not signed in: run a single turn without persistence.
-  async function runEphemeral(text: string) {
-    const userMsg: MessageRow = {
-      id: `eph-u-${Date.now()}`,
-      conversation_id: "ephemeral",
-      role: "user",
-      content: text,
-      analysis: null,
-      created_at: new Date().toISOString(),
-    };
-    setMessages((m) => [...m, userMsg]);
-    const turn = await runAssistant([], text);
-    setMessages((m) => [
-      ...m,
-      {
-        id: `eph-a-${Date.now()}`,
-        conversation_id: "ephemeral",
-        role: "assistant",
-        content: turn.assistant_message,
-        analysis: {
-          assistant_message: turn.assistant_message,
-          article: turn.article,
-          analysis: turn.analysis,
-        },
-        created_at: new Date().toISOString(),
-      },
-    ]);
-    toast.info("Sign in to save this conversation to your history.");
-  }
-
-  const empty = messages.length === 0 && !loadingHistory;
+  const empty = messages.length === 0;
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -224,12 +138,6 @@ export function ChatView({ threadId, userId, onThreadCreated }: Props) {
                   </button>
                 ))}
               </div>
-            </div>
-          )}
-
-          {loadingHistory && (
-            <div className="text-center text-sm text-muted-foreground py-8">
-              <Loader2 className="h-4 w-4 animate-spin inline mr-2" /> Loading conversation…
             </div>
           )}
 
@@ -341,6 +249,3 @@ function MessageBubble({ message }: { message: MessageRow }) {
     </div>
   );
 }
-
-// Keep import used elsewhere
-export const _supabase = supabase;

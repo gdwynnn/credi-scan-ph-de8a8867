@@ -1,30 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
 import { ChatView } from "@/components/ChatView";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
-import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({ component: HomePage });
 
 function HomePage() {
-  const [userId, setUserId] = useState<string | null>(null);
-  const [refreshKey, setRefreshKey] = useState(0);
-
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setUserId(data.session?.user.id ?? null));
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => setUserId(s?.user.id ?? null));
-    return () => sub.subscription.unsubscribe();
-  }, []);
-
   return (
     <div className="flex">
-      <ConversationSidebar refreshKey={refreshKey} />
+      <ConversationSidebar />
       <div className="flex-1 min-w-0">
-        <ChatView
-          threadId={null}
-          userId={userId}
-          onThreadCreated={() => setRefreshKey((k) => k + 1)}
-        />
+        <ChatView threadId={null} />
       </div>
     </div>
   );

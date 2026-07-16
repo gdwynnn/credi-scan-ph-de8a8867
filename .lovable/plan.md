@@ -1,61 +1,69 @@
-## CrediScan — Fake News Detection for the Philippines
 
-An NLP-powered web app inspired by your paper. Users paste a news article, social media post, or URL; the system analyzes it with AI tuned for Philippine context and returns a verdict, confidence score, the linguistic risk factors that triggered it, and links to legitimate PH outlets / fact-checkers where the claim can be verified.
+## 1. The "instrument" concept (context for you)
 
-### Pages / Routes
+In prompt engineering, a **structured evaluation instrument** is a named, published rubric the AI must follow when it judges something — exactly like WCAG for accessibility. It stops the model from inventing its own criteria and makes results defensible ("the AI flagged this because indicator #7 — *Sources cited* — failed").
 
-1. **`/` — Dashboard / Analyzer** (core)
-   - Tabbed input: *Paste text* | *Paste URL*
-   - Big textarea or URL field, "Analyze" button
-   - Live result panel below: verdict badge (Credible / Suspicious / Likely Fake), confidence gauge (0–100%), summary
-   - **Explainability**: highlighted excerpts showing which phrases triggered the score (sensational language, missing citations, emotional manipulation, etc.)
-   - **Risk Factors** card: bulleted list of issues found
-   - **Legit Check** card: list of recommended Philippine sources to verify against (auto-categorized: Fact-checkers → Mainstream → Government → International), each as an outbound link with a "search this claim" query
-   - Save-to-history toggle
+For a fake-news system, the accepted equivalent is the **Credibility Coalition — Content Credibility Indicators** (developed with MIT, Meedan, Hacks/Hackers). 16 signals across three groups:
 
-2. **`/history` — Past Checks**
-   - Table of previous analyses (text snippet, verdict, confidence, date)
-   - Click row → re-opens full result
-   - Stats strip: total analyses, % flagged, most common risk factor
+- **Content:** Title Representativeness, Clickbait Title, Quotes from Outside Experts, Citation of Organizations & Studies, Calibration of Confidence, Logical Fallacies, Tone, Inference.
+- **Context:** Originality, Fact-Checked Elsewhere, Representative Citations, Reputation of Citations.
+- **Publisher:** Number of Ads, Number of Social Calls, Author Expertise, Publisher's Reputation.
 
-3. **`/about` — About CrediScan**
-   - Project context (based on the paper's CrediScan framework), methodology in plain language, list of trusted PH sources, disclaimer that this is a decision-support tool
+I'll cite it in the prompt by name (`Instrument: Credibility Coalition — Content Credibility Indicators v1.1`) so it's visible in your defense.
 
-### How detection works (technical)
+## 2. What changes
 
-- **Lovable Cloud** enabled for: auth (optional anonymous + email), `analyses` table for history, server function for AI calls
-- **TanStack server function** `analyzeContent.functions.ts` → calls Lovable AI Gateway (`google/gemini-3-flash-preview`) with AI SDK `Output.object` for structured JSON
-- **Server function** `fetchUrl.functions.ts` → fetches a URL server-side and extracts main text (simple readability heuristic, no external scraper dependency)
-- The prompt is tuned for **Philippine context**: knows local outlets, common PH disinformation patterns (election narratives, health hoaxes, "viral" Facebook chain posts, Tagalog/Taglish red flags), and instructs the model to be conservative
-- Structured output schema:
-  ```
-  verdict: "credible" | "suspicious" | "likely_fake"
-  confidence: 0-100
-  summary: string
-  risk_factors: [{ label, severity, excerpt }]
-  highlighted_phrases: [{ phrase, reason }]
-  suggested_sources: [{ name, url, category, search_query }]
-  reasoning: string
-  ```
-- Suggested sources are seeded from a curated PH list (Rappler, Inquirer, ABS-CBN, GMA, PhilStar, Manila Bulletin, VERA Files, Tsek.ph, Rappler Fact Check, PCIJ, PNA, AFP Fact Check, Reuters, Snopes) — the AI picks the most relevant ones for the topic and generates pre-filled search queries
+### A. Bake the instrument into the AI prompt
+- Edit `src/lib/openai-client.ts` `SYSTEM_PROMPT`:
+  - Add an **INSTRUMENT** section listing the 16 indicators grouped by Content / Context / Publisher, each with a one-line definition.
+  - Require the AI to score every indicator as `pass | fail | mixed | not_applicable` with a one-sentence justification.
+  - Verdict must be **derived** from the indicator scores (e.g. ≥4 fails on Content → `likely_fake`; 2–3 fails or mixed → `suspicious`; else `credible`).
+- Extend `SCHEMA` and `AnalysisResult` (`src/lib/analysis-types.ts`) with a new `credibility_indicators` array: `{ id, group, name, score, justification }`.
+- Update `AnalysisResultView.tsx` to render an "Instrument scorecard" section (grouped, color-coded chips) so the rubric is visible to the user.
+- Keep every existing feature: search-first behavior, PH source priority, verification links, article reconstruction, clarification rules, no "where did you hear this" — all preserved, the instrument sits on top.
 
-### Database (Lovable Cloud)
+### B. Remove the account system
+- Delete `src/routes/auth.tsx`, `src/components/UserMenu.tsx`, and the sign-in/out UI in `SiteChrome.tsx`.
+- Remove Supabase auth calls from `ChatView`, `ConversationSidebar`, `c.$threadId.tsx`, and `conversations.ts`.
+- Drop the `MissingKeyBanner` sign-in branches.
+- Leave the Supabase tables alone (harmless; just unused). No DB migration needed.
 
-- `analyses` table: id, user_id (nullable), input_text, input_url, verdict, confidence, risk_factors (jsonb), highlighted_phrases (jsonb), suggested_sources (jsonb), summary, created_at
-- RLS: user sees only their own; anonymous sessions stored under a local session id
+### C. Local chat storage (threads, ChatGPT-style)
+- New module `src/lib/local-chats.ts` — single source of truth over `localStorage`:
+  - Key `crediscan.threads.v1` → `{ threads: ThreadMeta[], messages: Record<threadId, Message[]> }`.
+  - API: `listThreads`, `createThread`, `renameThread`, `deleteThread`, `loadMessages`, `appendUserMessage`, `appendAssistantMessage`, `exportAll`, `importAll`, `clearAll`.
+  - Auto-title a thread from the first user message (first ~40 chars).
+- Rewrite `ConversationSidebar` to read from `local-chats` instead of Supabase — same visual design, plus:
+  - **New chat** button (already present) creates a thread + navigates to `/c/:threadId`.
+  - **Export** button → downloads `crediscan-chats-YYYY-MM-DD.json`.
+  - **Import** button → file picker, merges (dedupe by thread id, newer `updated_at` wins), shows a toast summary.
+  - **Clear all** button with confirm.
+- Rewrite `ChatView` to persist through `local-chats` (drop-in swap; message shape unchanged).
+- Update `c.$threadId.tsx` to drop `userId` and just pass `threadId`; if the thread id isn't in storage, create an empty one so refresh works.
+- Update `routes/index.tsx` to redirect to the most recent thread on load, or create a fresh one.
 
-### Design — Trustworthy Newsroom
+### D. Fix the runtime `IndexSizeError`
+Range/`setStart` crash comes from the phrase-highlighter in `AnalysisResultView` walking text nodes that have already been split. Guard the offset with `Math.min(offset, node.textContent?.length ?? 0)` before `setStart`/`setEnd`. Small, drive-by fix.
 
-- Palette: deep navy `#0f1b3d`, ink `#1e3a5f`, blue accent `#3b6fa0`, paper `#e8edf3`
-- Typography: serif headings (Instrument Serif or Libre Baskerville) + clean sans body (Inter) — editorial feel
-- Verdict badges: green / amber / red against navy, no neon
-- Confidence gauge: thin radial arc, restrained motion
-- Layout: centered single column with generous whitespace; result panels as bordered "newspaper clipping" cards
+## 3. Files touched
 
-### Out of scope for v1
+```text
+edit    src/lib/openai-client.ts         # instrument + scoring rules in prompt & schema
+edit    src/lib/analysis-types.ts        # add CredibilityIndicator type
+edit    src/components/AnalysisResultView.tsx  # scorecard UI + Range guard
+new     src/lib/local-chats.ts           # localStorage thread store + export/import
+edit    src/components/ConversationSidebar.tsx # local store, export/import/clear buttons
+edit    src/components/ChatView.tsx      # persist via local-chats, drop auth
+edit    src/routes/c.$threadId.tsx       # drop userId
+edit    src/routes/index.tsx             # redirect to latest / create thread
+edit    src/components/SiteChrome.tsx    # remove auth UI
+edit    src/components/MissingKeyBanner.tsx    # drop sign-in variant
+delete  src/routes/auth.tsx
+delete  src/components/UserMenu.tsx
+edit    src/lib/conversations.ts         # delete OR reduce to type re-exports (decide during build)
+```
 
-- Actual BERT model training (uses AI gateway instead — addressed in the About page)
-- Multi-user admin dashboard, SUS survey module, model-evaluation graphs from the paper's pipeline
-- Image/video deepfake detection
-
-When you approve, I'll build it in this order: scaffold routes & design tokens → Cloud + DB → server functions (analyze, fetchUrl) → analyzer page → result components (verdict, gauge, risk factors, sources, highlighting) → history → about.
+## 4. Out of scope
+- No database migration (tables stay, unused).
+- No server-side changes; everything runs client-side against Groq as today.
+- No multi-device sync — export/import JSON covers manual transfer.

@@ -46,24 +46,46 @@ Trusted source priority (highest first):
 
 YOUR JOB EVERY TURN:
 1. Read the FULL conversation history above. If earlier turns established the location, school, date, topic, or any entity, USE THAT CONTEXT. A one-word reply like "Siniloan" or "LSPU" is answering YOUR previous question — continue the original investigation, do not treat it as a brand-new query.
-
-2. If the user pasted a URL (Facebook post, Instagram, X/Twitter, news article, government page, school page):
-   - Treat the link as the subject. Reconstruct what such a post/article would plausibly say based on the URL, the platform, the page/handle, and your knowledge.
-   - If the URL is to a private/login-walled resource you cannot meaningfully reason about, set needs_clarification=true and politely ask them to paste the text or describe what it says — then keep going.
-   - Cross-check the claim against trusted sources above.
-
-3. If the user asks a verifiable factual question (class suspension, work suspension, typhoon, earthquake, holiday, festival, traffic, LGU announcement, school announcement, PH news claim):
-   - Search your knowledge first. Reconstruct the most likely real announcement/article (headline, source, date, 4-8 sentences) from the highest-priority trusted source that would cover it.
-   - Then analyze the CLAIM for credibility.
-   - If multiple trusted sources would disagree, explain the disagreement in the analysis reasoning rather than picking arbitrarily.
-
-4. Only set needs_clarification=true when an ESSENTIAL detail is missing and no reasonable default exists — specifically: which municipality/city/province, which school, or which date. Ask ONE short, specific question. Never ask for "the source" or "the link". Never re-ask something already answered earlier in the conversation.
-
-5. If you genuinely cannot find any trusted public information on the topic, say so plainly in assistant_message (e.g. "I can't find a trusted public announcement about classes in Siniloan for today.") and set article=null, analysis=null. Do not invent suspensions, holidays, or advisories that don't exist.
-
+2. If the user pasted a URL, treat the link as the subject. Reconstruct what such a post/article would plausibly say based on the URL, the platform, the page/handle, and your knowledge. If it is a private/login-walled resource you cannot meaningfully reason about, set needs_clarification=true and ask them to paste the text.
+3. If the user asks a verifiable factual question, search your knowledge first. Reconstruct the most likely real announcement/article (headline, source, date, 4-8 sentences) from the highest-priority trusted source that would cover it, then analyze the CLAIM. If multiple trusted sources would disagree, explain the disagreement.
+4. Only set needs_clarification=true when an ESSENTIAL detail (which municipality, which school, which date) is missing and no reasonable default exists. Ask ONE short, specific question. Never ask for "the source" or "the link". Never re-ask something already answered.
+5. If you genuinely cannot find any trusted public information on the topic, say so plainly and set article=null, analysis=null. Do not invent suspensions, holidays, or advisories that don't exist.
 6. Small talk / greetings: short reply, article=null, analysis=null.
 
-Detection: be conservative. Use "suspicious" when in doubt, not "likely_fake". Reputable PH outlets writing about real controversial topics are still credible. Outdated-but-once-true claims should be flagged as "suspicious" with reasoning explaining the time mismatch.
+INSTRUMENT — Credibility Coalition, Content Credibility Indicators (v1.1):
+This is the published rubric you MUST score every non-trivial claim against (like WCAG for accessibility). It has 16 indicators in three groups. Fill \`credibility_indicators\` with EXACTLY these 16 entries in this order, each scored "pass" | "fail" | "mixed" | "not_applicable" with a one-sentence justification tied to the reconstructed article and your knowledge of trusted PH sources.
+
+CONTENT indicators (about the article itself):
+  C1  title_representativeness   — Title accurately reflects the body.
+  C2  clickbait_title            — Title uses sensational, curiosity-gap, or misleading framing.  (pass = NOT clickbait)
+  C3  quotes_from_outside_experts — Body quotes identifiable experts outside the outlet.
+  C4  citation_of_organizations_and_studies — Body names specific studies, reports, agencies, or datasets.
+  C5  calibration_of_confidence  — Claims are expressed with appropriate certainty/hedging, not absolutes.
+  C6  logical_fallacies          — Reasoning is free of obvious fallacies. (pass = NO fallacies)
+  C7  tone                       — Neutral, informative tone rather than emotional/inflammatory. (pass = neutral)
+  C8  inference                  — Conclusions follow from evidence rather than leaps or speculation.
+
+CONTEXT indicators (about the claim's place in the wider information ecosystem):
+  X1  originality                — Original reporting vs pure aggregation/copy.
+  X2  fact_checked_elsewhere     — Independently verified or debunked by fact-checkers/other outlets.
+  X3  representative_citations   — Cited sources fairly represent the range of relevant evidence.
+  X4  reputation_of_citations    — Sources cited are themselves reputable.
+
+PUBLISHER indicators (about who is publishing):
+  P1  number_of_ads              — Ad density is normal, not excessive or deceptive. (pass = normal)
+  P2  number_of_social_calls     — Share/engagement bait is normal, not excessive. (pass = normal)
+  P3  author_expertise           — Author is identifiable and has relevant credentials.
+  P4  publisher_reputation       — Publisher is an established, accountable outlet.
+
+Use "not_applicable" only when the medium truly makes it impossible to judge (e.g. a private FB post has no formal author bio → P3 = not_applicable).
+
+DERIVE the verdict from the indicator scores:
+- 0-1 fails across all 16   → "credible"   (confidence 70-95)
+- 2-3 fails, or many "mixed" → "suspicious" (confidence 45-75)
+- 4+ fails, especially clickbait/tone/logical_fallacies/publisher_reputation → "likely_fake" (confidence 55-90)
+Explain the mapping briefly in \`reasoning\`.
+
+Detection posture: be conservative. When in doubt, "suspicious" not "likely_fake". Reputable PH outlets writing about real controversial topics are still credible. Outdated-but-once-true claims should be "suspicious" with reasoning explaining the time mismatch.
 
 verification_links MUST be real working URLs using Google site-restricted search format:
   https://www.google.com/search?q=site%3A<domain>+<url-encoded-keywords>
@@ -91,11 +113,14 @@ const SCHEMA = `Schema:
     "risk_factors": [{ "label": string, "severity": "low"|"medium"|"high", "excerpt": string }],
     "highlighted_phrases": [{ "phrase": string, "reason": string }],
     "suggested_sources": [{ "name": string, "url": string, "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string }],
-    "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }]
+    "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }],
+    "credibility_indicators": [
+      { "id": string (e.g. "C1"), "group": "content"|"context"|"publisher", "name": string (e.g. "title_representativeness"), "score": "pass"|"fail"|"mixed"|"not_applicable", "justification": string (1 sentence) }
+    ]
   }
 }
 
-If article and analysis are non-null, both must be filled. If you cannot map the request to a verifiable claim, set both to null and explain in assistant_message.`;
+If article and analysis are non-null, both must be filled, AND credibility_indicators must contain all 16 Credibility Coalition indicators in the order listed in the INSTRUMENT section. If you cannot map the request to a verifiable claim, set both to null and explain in assistant_message.`;
 
 export interface ChatTurn {
   role: "user" | "assistant";
@@ -201,6 +226,11 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     parsed.analysis.suggested_sources = Array.isArray(parsed.analysis.suggested_sources) ? parsed.analysis.suggested_sources.slice(0, 8) : [];
     parsed.analysis.verification_links = Array.isArray(parsed.analysis.verification_links)
       ? parsed.analysis.verification_links.filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url)).slice(0, 8)
+      : [];
+    parsed.analysis.credibility_indicators = Array.isArray(parsed.analysis.credibility_indicators)
+      ? parsed.analysis.credibility_indicators
+          .filter((c) => c && typeof c.id === "string" && typeof c.name === "string")
+          .slice(0, 20)
       : [];
     if (parsed.article) {
       parsed.analysis.input_text = `${parsed.article.headline}\n\n${parsed.article.body}`;
