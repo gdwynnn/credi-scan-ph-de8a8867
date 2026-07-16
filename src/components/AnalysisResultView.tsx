@@ -151,6 +151,11 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
         </Card>
       </section>
 
+      {/* Credibility Instrument Scorecard */}
+      {result.credibility_indicators && result.credibility_indicators.length > 0 && (
+        <IndicatorScorecard indicators={result.credibility_indicators} />
+      )}
+
       {/* Risk Factors */}
       {result.risk_factors.length > 0 && (
         <section>
@@ -403,10 +408,15 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
                 <ModelLayer
                   step={3}
                   title="LLM Semantic Analysis"
-                  desc="Gemini-based classifier with Philippine disinformation context."
+                  desc="Groq Llama-3.3-70B classifier with Philippine disinformation context."
                 />
                 <ModelLayer
                   step={4}
+                  title="Credibility Instrument Scoring"
+                  desc={`Every claim is scored against the ${INSTRUMENT_NAME} — 16 published indicators across Content, Context, and Publisher. The verdict is derived from those scores, not invented ad-hoc.`}
+                />
+                <ModelLayer
+                  step={5}
                   title="Source Cross-Reference"
                   desc="Generates verification links against PH fact-checkers and mainstream outlets."
                 />
