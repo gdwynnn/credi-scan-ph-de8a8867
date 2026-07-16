@@ -113,11 +113,14 @@ const SCHEMA = `Schema:
     "risk_factors": [{ "label": string, "severity": "low"|"medium"|"high", "excerpt": string }],
     "highlighted_phrases": [{ "phrase": string, "reason": string }],
     "suggested_sources": [{ "name": string, "url": string, "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string }],
-    "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }]
+    "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }],
+    "credibility_indicators": [
+      { "id": string (e.g. "C1"), "group": "content"|"context"|"publisher", "name": string (e.g. "title_representativeness"), "score": "pass"|"fail"|"mixed"|"not_applicable", "justification": string (1 sentence) }
+    ]
   }
 }
 
-If article and analysis are non-null, both must be filled. If you cannot map the request to a verifiable claim, set both to null and explain in assistant_message.`;
+If article and analysis are non-null, both must be filled, AND credibility_indicators must contain all 16 Credibility Coalition indicators in the order listed in the INSTRUMENT section. If you cannot map the request to a verifiable claim, set both to null and explain in assistant_message.`;
 
 export interface ChatTurn {
   role: "user" | "assistant";
