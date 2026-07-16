@@ -227,6 +227,11 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     parsed.analysis.verification_links = Array.isArray(parsed.analysis.verification_links)
       ? parsed.analysis.verification_links.filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url)).slice(0, 8)
       : [];
+    parsed.analysis.credibility_indicators = Array.isArray(parsed.analysis.credibility_indicators)
+      ? parsed.analysis.credibility_indicators
+          .filter((c) => c && typeof c.id === "string" && typeof c.name === "string")
+          .slice(0, 20)
+      : [];
     if (parsed.article) {
       parsed.analysis.input_text = `${parsed.article.headline}\n\n${parsed.article.body}`;
       parsed.analysis.input_url = null;
