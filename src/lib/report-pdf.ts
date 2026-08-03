@@ -105,7 +105,9 @@ export function buildReportPdf(
   y = 100;
 
   // ---- Verdict card -------------------------------------------------------
-  const summaryLines = doc.splitTextToSize(ascii(result.summary || ""), CONTENT_W - 40) as string[];
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const summaryLines = doc.splitTextToSize(ascii(result.summary || ""), CONTENT_W - 44) as string[];
   const cardH = 96 + summaryLines.length * 14;
   doc.setFillColor(accent[0], accent[1], accent[2]);
   doc.setDrawColor(accent[0], accent[1], accent[2]);
@@ -179,6 +181,8 @@ export function buildReportPdf(
       const scoreColor: RGB =
         ind.score === "pass" ? TONE.success : ind.score === "fail" ? TONE.danger : ind.score === "mixed" ? TONE.warning : MUTED;
       const label = `${ind.id}  ${ind.name.replace(/_/g, " ")}`;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9);
       const just = doc.splitTextToSize(ascii(ind.justification || ""), CONTENT_W - 96) as string[];
       ensure(16 + just.length * 12);
 
