@@ -76,7 +76,7 @@ export function buildReportPdf(
   }
 
   function heading(label: string) {
-    ensure(40);
+    ensure(78);
     y += 12;
     doc.setFont("helvetica", "bold");
     doc.setFontSize(12);
