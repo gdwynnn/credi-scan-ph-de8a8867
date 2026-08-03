@@ -131,7 +131,7 @@ const SCHEMA = `Schema:
   }
 }
 
-If article and analysis are non-null, both must be filled, AND credibility_indicators must contain all 16 Credibility Coalition indicators in the order listed in the INSTRUMENT section. If you cannot map the request to a verifiable claim, set both to null and explain in assistant_message.`;
+If article and analysis are non-null, both must be filled, AND credibility_indicators must contain all 16 Credibility Coalition indicators in the order listed in the INSTRUMENT section. Whenever the user supplies ANY link or claim with readable context, article and analysis MUST be non-null — including when no trusted outlet covers it (see rule 5: report "walang nakitang katibayan / no corroboration found" inside the analysis instead of returning nulls). Set both to null ONLY for greetings/small talk or a truly inaccessible login-walled link with zero readable context.`;
 
 export interface ChatTurn {
   role: "user" | "assistant";
