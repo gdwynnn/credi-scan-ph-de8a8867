@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download } from "lucide-react";
+import { downloadReportPdf } from "@/lib/report-pdf";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -242,7 +243,28 @@ function MessageBubble({ message }: { message: MessageRow }) {
       )}
 
       {analysis && (
-        <div className="ml-11">
+        <div className="ml-11 space-y-4">
+          <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3">
+            <div className="text-xs text-muted-foreground">
+              Export this classification result and credibility scorecard.
+            </div>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-2 shrink-0"
+              onClick={() => {
+                try {
+                  downloadReportPdf(analysis, article ?? null, message.content);
+                  toast.success("Report downloaded");
+                } catch (e) {
+                  toast.error(e instanceof Error ? e.message : "Could not generate PDF");
+                }
+              }}
+            >
+              <Download className="h-4 w-4" />
+              Download PDF
+            </Button>
+          </div>
           <AnalysisResultView result={analysis} />
         </div>
       )}
