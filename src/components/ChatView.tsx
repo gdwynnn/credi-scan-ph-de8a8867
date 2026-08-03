@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download } from "lucide-react";
+import { downloadReportPdf } from "@/lib/report-pdf";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
