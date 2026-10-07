@@ -60,7 +60,7 @@ export function ChatView({ threadId }: Props) {
     const text = (textOverride ?? input).trim();
     if (!text || sending) return;
     if (!hasOpenAIKey()) {
-      toast.error("Set VITE_GROQ_API_KEY in your .env file first.");
+      toast.error("The AI key is not configured.");
       return;
     }
 
