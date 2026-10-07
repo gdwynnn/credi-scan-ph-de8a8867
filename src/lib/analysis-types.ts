@@ -30,11 +30,11 @@ export interface VerificationLink {
 }
 
 // ---------------------------------------------------------------------------
-// Credibility Coalition — Content Credibility Indicators (v1.1)
-// Published rubric ("instrument") the AI must score every claim against.
-// https://credibilitycoalition.org/credco-schema/
+// NewsGuard Rating Process — 9 Journalistic Criteria (source/website trust).
+// https://www.newsguardtech.com/ratings/rating-process-criteria/
+// Legacy groups kept so older saved chats still render.
 
-export type IndicatorGroup = "content" | "context" | "publisher";
+export type IndicatorGroup = "credibility" | "transparency" | "content" | "context" | "publisher";
 export type IndicatorScore = "pass" | "fail" | "mixed" | "not_applicable";
 
 export interface CredibilityIndicator {
@@ -45,8 +45,24 @@ export interface CredibilityIndicator {
   justification: string;
 }
 
-export const INSTRUMENT_NAME =
-  "Credibility Coalition — Content Credibility Indicators (v1.1)";
+export const INSTRUMENT_NAME = "NewsGuard Rating Process — 9 Journalistic Criteria";
+
+export const CRITERIA_WEIGHTS: Record<string, number> = {
+  N1: 22, N2: 18, N3: 12.5, N4: 12.5, N5: 10, N6: 7.5, N7: 7.5, N8: 5, N9: 5,
+};
+
+/** Source trust score (0-100) over applicable criteria; null if not computable. */
+export function sourceTrustScore(ind: CredibilityIndicator[]): number | null {
+  let got = 0, max = 0;
+  for (const i of ind) {
+    const w = CRITERIA_WEIGHTS[i.id];
+    if (!w || i.score === "not_applicable") continue;
+    max += w;
+    if (i.score === "pass") got += w;
+    else if (i.score === "mixed") got += w / 2;
+  }
+  return max > 0 ? Math.round((got / max) * 100) : null;
+}
 
 // ---------------------------------------------------------------------------
 

@@ -1,19 +1,10 @@
-import type { AnalysisResult, Verdict } from "./analysis-types";
+import type { AnalysisResult, Verdict, VerificationLink } from "./analysis-types";
+import { runAssistantServer } from "./assistant.functions";
 
-// NOTE: Filename kept for backward compatibility — this module now talks to
-// Groq's OpenAI-compatible API (free tier, ~30 RPM / 14.4k RPD).
-export const GROQ_API_KEY = (import.meta.env.VITE_GROQ_API_KEY as string | undefined) ?? "";
-export const GROQ_MODEL = (import.meta.env.VITE_GROQ_MODEL as string | undefined) || "llama-3.3-70b-versatile";
-
-// Legacy aliases (other files may still import these names)
-export const OPENAI_API_KEY = GROQ_API_KEY;
-export const OPENAI_MODEL = GROQ_MODEL;
-export const GEMINI_API_KEY = GROQ_API_KEY;
-export const GEMINI_MODEL = GROQ_MODEL;
-
-export const hasGroqKey = () => GROQ_API_KEY.trim().length > 0;
-export const hasOpenAIKey = hasGroqKey;
-export const hasGeminiKey = hasGroqKey;
+// The OpenAI key lives on the server; the browser never sees it.
+export const hasOpenAIKey = () => true;
+export const hasGroqKey = hasOpenAIKey;
+export const hasGeminiKey = hasOpenAIKey;
 
 export interface AssistantArticle {
   headline: string;
@@ -29,227 +20,50 @@ export interface AssistantTurn {
   needs_clarification?: boolean;
 }
 
-const SYSTEM_PROMPT = `You are CrediScan, a proactive investigative research assistant for news circulating in the Philippines (Tagalog, English, Taglish, Bisaya, Hiligaynon, etc.).
-
-CORE BEHAVIOR — SEARCH-FIRST, NEVER ASK-FIRST:
-The user will speak to you naturally. They will NOT paste a URL or article most of the time. They'll say things like "Totoo ba na…?", "May klase ba sa Siniloan today?", "Suspended ba work?", "I heard…".
-
-NEVER ask the user "where did you hear this?" or "can you share the source?" or "do you have a link?" — you are the researcher, they are the citizen. Do your own search across your knowledge of trusted Philippine public sources before asking anything.
-
-Trusted source priority (highest first):
-1. Government: Malacañang/PCO, DepEd, CHED, DOH, PAGASA, PHIVOLCS, NDRRMC, MMDA, DOTr, DOLE, COMELEC, PSA, BSP, DSWD, PNP, AFP
-2. LGU: official municipal/city/provincial websites and verified Facebook pages of mayors, governors, PIOs
-3. Schools/institutions: official .edu.ph pages, verified school FB pages (UP, LSPU, Ateneo, La Salle, etc.)
-4. Mainstream PH news: Rappler, Inquirer, GMA, ABS-CBN, Philstar, Manila Bulletin, PNA, BusinessWorld
-5. PH fact-checkers: VERA Files, Tsek.ph, Rappler Fact Check, AFP Fact Check PH
-6. Verified public social media (FB/IG/X) of the above entities
-
-YOUR JOB EVERY TURN:
-1. Read the FULL conversation history above. If earlier turns established the location, school, date, topic, or any entity, USE THAT CONTEXT. A one-word reply like "Siniloan" or "LSPU" is answering YOUR previous question — continue the original investigation, do not treat it as a brand-new query.
-2. LINKS OF ANY KIND ARE VALID INPUT. Reddit, Facebook, X, TikTok, YouTube, blogs, forums, Telegram, Wattpad, aggregators, screenshots described in text — ALL of them are acceptable. NEVER refuse, deflect, or downgrade an input because "it is not a primary news source" or "it is only a social media/aggregator post". Your entire purpose is to legit-check whatever claim the user brings you, regardless of where it came from. The platform is NOT the subject; the CLAIM carried by that post is the subject.
-   - Extract the claim from the URL itself when possible: subreddit/page/handle, the slug (e.g. \`bocnaia_and_naiaditg_arrested_claimant_of_100\` → "BOC-NAIA and NAIA-DITG arrested a claimant of ₱100 million"), the post ID, the date, and anything the user typed alongside it. Reconstruct the most plausible post content from those signals plus your knowledge.
-   - Then investigate THAT claim against the trusted PH sources listed above and produce a FULL analysis (article + analysis + all 16 indicators).
-   - Only if the link is genuinely login-walled / private / members-only / deleted AND the URL carries no readable slug, title, handle, or context at all: set needs_clarification=true and say plainly you cannot access that resource publicly and ask them to paste the text. This is the ONLY acceptable refusal.
-3. If the user asks a verifiable factual question, search your knowledge first. Reconstruct the most likely real announcement/article (headline, source, date, 4-8 sentences) from the highest-priority trusted source that would cover it, then analyze the CLAIM. If multiple trusted sources would disagree, explain the disagreement.
-4. Only set needs_clarification=true when an ESSENTIAL detail (which municipality, which school, which date) is missing and no reasonable default exists. Ask ONE short, specific question. Never ask for "the source" or "the link". Never re-ask something already answered.
-5. NO-CORROBORATION IS STILL A RESULT — NEVER A DEAD END. If you cannot find ANY coverage of the claim from trusted PH outlets, government agencies, LGUs, schools, or fact-checkers, you MUST STILL return a complete article + analysis:
-   - \`article\` = the reconstructed claim as circulated (headline from the post/slug, \`source\` = the platform and page it appeared on, e.g. "Reddit — r/PhilippinesNews (user-shared post)", body = the claim as best reconstructed, explicitly noting it is unverified user-generated content).
-   - \`assistant_message\` and \`summary\` must state clearly, in the user's language, that NOTHING matching this claim was found in any trusted news outlet, government release, or fact-checking database on the internet.
-   - \`verdict\` = "suspicious" (confidence 40-65) when the claim is merely uncorroborated and plausible; "likely_fake" when it is uncorroborated AND carries deceptive markers (sensational numbers, urgency, no named officials, viral-bait framing).
-   - Score all 16 indicators as usual — absence of corroboration makes X2 fact_checked_elsewhere = "fail", X4 / P4 typically "fail" or "not_applicable" for anonymous posts.
-   - Still emit verification_links so the user can search the trusted outlets themselves.
-   Do NOT respond with only "I couldn't find anything, give me more context." That is a failure.
-6. Never invent suspensions, holidays, arrests, or advisories as if they were confirmed. Unconfirmed material must be clearly labeled unconfirmed inside the article body and analysis — but it must still be analyzed.
-7. Small talk / greetings: short reply, article=null, analysis=null.
-
-
-INSTRUMENT — Credibility Coalition, Content Credibility Indicators (v1.1):
-This is the published rubric you MUST score every non-trivial claim against (like WCAG for accessibility). It has 16 indicators in three groups. Fill \`credibility_indicators\` with EXACTLY these 16 entries in this order, each scored "pass" | "fail" | "mixed" | "not_applicable" with a one-sentence justification tied to the reconstructed article and your knowledge of trusted PH sources.
-
-CONTENT indicators (about the article itself):
-  C1  title_representativeness   — Title accurately reflects the body.
-  C2  clickbait_title            — Title uses sensational, curiosity-gap, or misleading framing.  (pass = NOT clickbait)
-  C3  quotes_from_outside_experts — Body quotes identifiable experts outside the outlet.
-  C4  citation_of_organizations_and_studies — Body names specific studies, reports, agencies, or datasets.
-  C5  calibration_of_confidence  — Claims are expressed with appropriate certainty/hedging, not absolutes.
-  C6  logical_fallacies          — Reasoning is free of obvious fallacies. (pass = NO fallacies)
-  C7  tone                       — Neutral, informative tone rather than emotional/inflammatory. (pass = neutral)
-  C8  inference                  — Conclusions follow from evidence rather than leaps or speculation.
-
-CONTEXT indicators (about the claim's place in the wider information ecosystem):
-  X1  originality                — Original reporting vs pure aggregation/copy.
-  X2  fact_checked_elsewhere     — Independently verified or debunked by fact-checkers/other outlets.
-  X3  representative_citations   — Cited sources fairly represent the range of relevant evidence.
-  X4  reputation_of_citations    — Sources cited are themselves reputable.
-
-PUBLISHER indicators (about who is publishing):
-  P1  number_of_ads              — Ad density is normal, not excessive or deceptive. (pass = normal)
-  P2  number_of_social_calls     — Share/engagement bait is normal, not excessive. (pass = normal)
-  P3  author_expertise           — Author is identifiable and has relevant credentials.
-  P4  publisher_reputation       — Publisher is an established, accountable outlet.
-
-Use "not_applicable" only when the medium truly makes it impossible to judge (e.g. a private FB post has no formal author bio → P3 = not_applicable).
-
-DERIVE the verdict from the indicator scores:
-- 0-1 fails across all 16   → "credible"   (confidence 70-95)
-- 2-3 fails, or many "mixed" → "suspicious" (confidence 45-75)
-- 4+ fails, especially clickbait/tone/logical_fallacies/publisher_reputation → "likely_fake" (confidence 55-90)
-Explain the mapping briefly in \`reasoning\`.
-
-Detection posture: be conservative. When in doubt, "suspicious" not "likely_fake". Reputable PH outlets writing about real controversial topics are still credible. Outdated-but-once-true claims should be "suspicious" with reasoning explaining the time mismatch.
-
-verification_links MUST be real working URLs using Google site-restricted search format:
-  https://www.google.com/search?q=site%3A<domain>+<url-encoded-keywords>
-Examples: site:rappler.com, site:verafiles.org, site:tsek.ph, site:doh.gov.ph, site:factcheck.afp.com
-- credible verdict → 4-6 supporting links to mainstream PH outlets + relevant government agency
-- suspicious / likely_fake → 4-6 debunking links to fact-checkers, plus 1-2 context links to mainstream outlets
-
-Always respond with ONLY a single JSON object matching the schema. No prose, no markdown fences.`;
-
-const SCHEMA = `Schema:
-{
-  "assistant_message": string (1-3 sentences, conversational reply),
-  "needs_clarification": boolean (true ONLY when you need to ask a clarifying question),
-  "article": null | {
-    "headline": string,
-    "source": string (PH outlet name),
-    "published": string (e.g. "2026-06-15" or "June 2026"),
-    "body": string (4-8 sentences, the reconstructed article text)
-  },
-  "analysis": null | {
-    "verdict": "credible" | "suspicious" | "likely_fake",
-    "confidence": number 0-100,
-    "summary": string (2-3 sentences),
-    "reasoning": string (1 short paragraph),
-    "risk_factors": [{ "label": string, "severity": "low"|"medium"|"high", "excerpt": string }],
-    "highlighted_phrases": [{ "phrase": string, "reason": string }],
-    "suggested_sources": [{ "name": string, "url": string, "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string }],
-    "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }],
-    "credibility_indicators": [
-      { "id": string (e.g. "C1"), "group": "content"|"context"|"publisher", "name": string (e.g. "title_representativeness"), "score": "pass"|"fail"|"mixed"|"not_applicable", "justification": string (1 sentence) }
-    ]
-  }
-}
-
-If article and analysis are non-null, both must be filled, AND credibility_indicators must contain all 16 Credibility Coalition indicators in the order listed in the INSTRUMENT section. Whenever the user supplies ANY link or claim with readable context, article and analysis MUST be non-null — including when no trusted outlet covers it (see rule 5: report "walang nakitang katibayan / no corroboration found" inside the analysis instead of returning nulls). Set both to null ONLY for greetings/small talk or a truly inaccessible login-walled link with zero readable context.`;
-
 export interface ChatTurn {
   role: "user" | "assistant";
   content: string;
 }
 
-// --- Light pacing + retry to stay friendly with Groq free tier --------------
-const MIN_INTERVAL_MS = 1200; // ~50 req/min ceiling, well under 30 RPM after jitter
-let chain: Promise<unknown> = Promise.resolve();
-let lastCallAt = 0;
-
-function enqueue<T>(task: () => Promise<T>): Promise<T> {
-  const run = chain.then(async () => {
-    const wait = Math.max(0, lastCallAt + MIN_INTERVAL_MS - Date.now());
-    if (wait > 0) await new Promise((r) => setTimeout(r, wait));
-    try {
-      return await task();
-    } finally {
-      lastCallAt = Date.now();
-    }
-  });
-  chain = run.catch(() => {});
-  return run as Promise<T>;
-}
-
-async function callGroqOnce(body: string): Promise<Response> {
-  return fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${GROQ_API_KEY}`,
-    },
-    body,
-  });
-}
-
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
-  if (!hasGroqKey()) {
-    throw new Error("Missing VITE_GROQ_API_KEY. Add it to your .env file and restart the dev server.");
-  }
-
-  const messages = [
-    { role: "system", content: SYSTEM_PROMPT },
-    ...history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
-    { role: "user", content: `${SCHEMA}\n\nUser request:\n"""\n${userQuery}\n"""` },
-  ];
-
-  const body = JSON.stringify({
-    model: GROQ_MODEL,
-    messages,
-    temperature: 0.4,
-    response_format: { type: "json_object" },
-  });
-
-  const res = await enqueue(async () => {
-    const MAX_ATTEMPTS = 4;
-    let lastBody = "";
-    let lastStatus = 0;
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-      const r = await callGroqOnce(body);
-      if (r.ok) return r;
-      lastStatus = r.status;
-      lastBody = await r.text();
-
-      if (r.status === 401 || r.status === 403) {
-        throw new Error("Groq rejected the API key. Check VITE_GROQ_API_KEY at console.groq.com/keys.");
-      }
-      if (r.status === 429 || r.status === 503) {
-        if (attempt === MAX_ATTEMPTS) break;
-        // Honor Retry-After header when present, otherwise exponential backoff
-        const retryAfter = Number(r.headers.get("retry-after")) * 1000;
-        const backoff = retryAfter > 0 ? retryAfter + 500 : 1500 * 2 ** (attempt - 1);
-        await new Promise((res2) => setTimeout(res2, Math.min(backoff, 30_000)));
-        continue;
-      }
-      break;
-    }
-    if (lastStatus === 429) {
-      throw new Error("Groq rate limit hit. Free tier allows ~30 requests/min — wait a moment and try again.");
-    }
-    throw new Error(`Groq error [${lastStatus}]: ${lastBody.slice(0, 300)}`);
-  });
-
-  const json = await res.json();
-  const raw: string | undefined = json?.choices?.[0]?.message?.content;
-  if (!raw) throw new Error("Empty response from Groq.");
+  const { raw, cited } = await runAssistantServer({ data: { history, query: userQuery } });
 
   let parsed: AssistantTurn;
   try {
     parsed = JSON.parse(raw);
   } catch {
     const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("Assistant returned malformed JSON.");
+    if (!match) return { assistant_message: raw.slice(0, 1500), article: null, analysis: null };
     parsed = JSON.parse(match[0]);
   }
 
   if (parsed.analysis) {
+    const a = parsed.analysis;
     const allowed: Verdict[] = ["credible", "suspicious", "likely_fake"];
-    if (!allowed.includes(parsed.analysis.verdict)) parsed.analysis.verdict = "suspicious";
-    parsed.analysis.confidence = Math.max(0, Math.min(100, Math.round(Number(parsed.analysis.confidence) || 0)));
-    parsed.analysis.risk_factors = Array.isArray(parsed.analysis.risk_factors) ? parsed.analysis.risk_factors.slice(0, 12) : [];
-    parsed.analysis.highlighted_phrases = Array.isArray(parsed.analysis.highlighted_phrases) ? parsed.analysis.highlighted_phrases.slice(0, 12) : [];
-    parsed.analysis.suggested_sources = Array.isArray(parsed.analysis.suggested_sources) ? parsed.analysis.suggested_sources.slice(0, 8) : [];
-    parsed.analysis.verification_links = Array.isArray(parsed.analysis.verification_links)
-      ? parsed.analysis.verification_links.filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url)).slice(0, 8)
+    if (!allowed.includes(a.verdict)) a.verdict = "suspicious";
+    a.confidence = Math.max(0, Math.min(100, Math.round(Number(a.confidence) || 0)));
+    a.risk_factors = Array.isArray(a.risk_factors) ? a.risk_factors.slice(0, 12) : [];
+    a.highlighted_phrases = Array.isArray(a.highlighted_phrases) ? a.highlighted_phrases.slice(0, 12) : [];
+    a.suggested_sources = Array.isArray(a.suggested_sources) ? a.suggested_sources.slice(0, 8) : [];
+    let links: VerificationLink[] = Array.isArray(a.verification_links)
+      ? a.verification_links.filter((l) => l && typeof l.url === "string" && /^https?:\/\//i.test(l.url))
       : [];
-    parsed.analysis.credibility_indicators = Array.isArray(parsed.analysis.credibility_indicators)
-      ? parsed.analysis.credibility_indicators
-          .filter((c) => c && typeof c.id === "string" && typeof c.name === "string")
-          .slice(0, 20)
-      : [];
-    if (parsed.article) {
-      parsed.analysis.input_text = `${parsed.article.headline}\n\n${parsed.article.body}`;
-      parsed.analysis.input_url = null;
-    } else {
-      parsed.analysis.input_text = userQuery;
-      parsed.analysis.input_url = null;
+    // Add any real web-search citations the model did not list.
+    const seen = new Set(links.map((l) => l.url.split("?")[0]));
+    for (const c of cited) {
+      const key = c.url.split("?")[0];
+      if (seen.has(key)) continue;
+      seen.add(key);
+      let host = c.url;
+      try { host = new URL(c.url).hostname.replace(/^www\./, ""); } catch { /* keep */ }
+      links.push({ site_name: host, label: c.title || host, url: c.url, type: "context" });
     }
+    a.verification_links = links.slice(0, 10);
+    a.credibility_indicators = Array.isArray(a.credibility_indicators)
+      ? a.credibility_indicators.filter((c) => c && typeof c.id === "string" && typeof c.name === "string").slice(0, 12)
+      : [];
+    a.input_text = parsed.article ? `${parsed.article.headline}\n\n${parsed.article.body}` : userQuery;
+    a.input_url = userQuery.match(/https?:\/\/[^\s<>"')]+/i)?.[0] ?? null;
   }
 
   return parsed;
