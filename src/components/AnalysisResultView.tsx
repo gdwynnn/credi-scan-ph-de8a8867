@@ -23,7 +23,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { AnalysisResult, CredibilityIndicator, VerificationLink } from "@/lib/analysis-types";
-import { INSTRUMENT_NAME, VERDICT_META } from "@/lib/analysis-types";
+import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore } from "@/lib/analysis-types";
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 
@@ -407,18 +407,18 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
                 />
                 <ModelLayer
                   step={3}
-                  title="LLM Semantic Analysis"
-                  desc="Groq Llama-3.3-70B classifier with Philippine disinformation context."
+                  title="Live Web Search + Evidence Gathering"
+                  desc="OpenAI model (Role Prompting + Structured Evidence-Guided Prompting) opens your link and searches the web itself for coverage, vetting each website it finds."
                 />
                 <ModelLayer
                   step={4}
-                  title="Credibility Instrument Scoring"
-                  desc={`Every claim is scored against the ${INSTRUMENT_NAME} — 16 published indicators across Content, Context, and Publisher. The verdict is derived from those scores, not invented ad-hoc.`}
+                  title="Source Trust Instrument"
+                  desc={`The publishing website is scored against the ${INSTRUMENT_NAME} (weighted to 100 points). The verdict comes from the evidence; the instrument adjusts confidence.`}
                 />
                 <ModelLayer
                   step={5}
-                  title="Source Cross-Reference"
-                  desc="Generates verification links against PH fact-checkers and mainstream outlets."
+                  title="Direct Evidence Links"
+                  desc="Lists the real article links found — supporting, debunking, or context."
                 />
               </ol>
             </Card>
@@ -502,6 +502,8 @@ function ModelLayer({ step, title, desc }: { step: number; title: string; desc: 
 // Credibility Coalition — Content Credibility Indicators scorecard
 
 const GROUP_META: Record<CredibilityIndicator["group"], { label: string; blurb: string }> = {
+  credibility: { label: "Credibility", blurb: "Is the website's reporting accurate and responsible?" },
+  transparency: { label: "Transparency", blurb: "Does the website disclose who runs and funds it?" },
   content: { label: "Content", blurb: "Signals from the article itself" },
   context: { label: "Context", blurb: "How the claim sits in the wider ecosystem" },
   publisher: { label: "Publisher", blurb: "Who is publishing and their track record" },
@@ -540,19 +542,25 @@ function humanizeName(name: string) {
 }
 
 function IndicatorScorecard({ indicators }: { indicators: CredibilityIndicator[] }) {
-  const groups: CredibilityIndicator["group"][] = ["content", "context", "publisher"];
+  const groups: CredibilityIndicator["group"][] = ["credibility", "transparency", "content", "context", "publisher"];
   const passes = indicators.filter((i) => i.score === "pass").length;
   const fails = indicators.filter((i) => i.score === "fail").length;
   const mixed = indicators.filter((i) => i.score === "mixed").length;
+  const trust = sourceTrustScore(indicators);
 
   return (
     <section>
       <SectionTitle
-        title="Credibility Instrument Scorecard"
-        subtitle={`Scored against the ${INSTRUMENT_NAME}. This is the published rubric the AI must follow — like WCAG for accessibility.`}
+        title="Source Trust Scorecard"
+        subtitle={`The website where this content was published, scored against the ${INSTRUMENT_NAME}. 60+ points = generally trustworthy.`}
       />
       <Card className="p-5">
-        <div className="flex flex-wrap gap-2 mb-5 text-xs">
+        <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
+          {trust !== null && (
+            <Badge className="border-0 bg-foreground text-background">
+              Source trust: {trust}/100
+            </Badge>
+          )}
           <Badge
             className="border-0"
             style={{ backgroundColor: SCORE_META.pass.bg, color: SCORE_META.pass.color }}
