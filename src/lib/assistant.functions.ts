@@ -94,7 +94,6 @@ export const runAssistantServer = createServerFn({ method: "POST" })
         tools: [{ type: "web_search" }],
         tool_choice: "auto",
         temperature: 0.2,
-        text: { format: { type: "json_object" } },
       }),
     });
 
