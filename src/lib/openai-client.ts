@@ -53,7 +53,38 @@ function parseLoose(raw: string): AssistantTurn | null {
   const end = s.lastIndexOf("}");
   if (start >= 0 && end > start) s = s.slice(start, end + 1);
   try { return JSON.parse(s); } catch { /* try repair */ }
-  try { return JSON.parse(jsonrepair(s)); } catch { return null; }
+  try { return JSON.parse(jsonrepair(s)); } catch { /* try quote fix */ }
+  const fixed = escapeInnerQuotes(s);
+  try { return JSON.parse(fixed); } catch { /* */ }
+  try { return JSON.parse(jsonrepair(fixed)); } catch { /* */ }
+  // Last resort: salvage the chat message so the user still gets an answer.
+  const msg = s.match(/"assistant_message"\s*:\s*"([\s\S]*?)"\s*,\s*"(?:article|analysis|needs_clarification)"/)?.[1];
+  if (msg) return { assistant_message: msg.replace(/\\n/g, "\n").replace(/\\"/g, '"'), article: null, analysis: null };
+  return null;
+}
+
+// Escape stray double quotes that appear inside string values
+// (e.g. quoted statements from officials).
+function escapeInnerQuotes(s: string): string {
+  let out = "";
+  let inStr = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (ch === "\\" && inStr) { out += ch + (s[i + 1] ?? ""); i++; continue; }
+    if (ch === '"') {
+      if (!inStr) { inStr = true; out += ch; continue; }
+      let j = i + 1;
+      while (j < s.length && /\s/.test(s[j])) j++;
+      const next = s[j];
+      if (next === undefined || next === "," || next === "}" || next === "]" || next === ":") {
+        inStr = false; out += ch;
+      } else out += '\\"';
+      continue;
+    }
+    if (inStr && (ch === "\n" || ch === "\r")) { out += " "; continue; }
+    out += ch;
+  }
+  return out;
 }
 
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
