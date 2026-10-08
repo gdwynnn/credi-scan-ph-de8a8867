@@ -1,5 +1,6 @@
 import type { AnalysisResult, Verdict, VerificationLink } from "./analysis-types";
 import { runAssistantServer } from "./assistant.functions";
+import { jsonrepair } from "jsonrepair";
 
 // The OpenAI key lives on the server; the browser never sees it.
 export const hasOpenAIKey = () => true;
@@ -25,17 +26,48 @@ export interface ChatTurn {
   content: string;
 }
 
+function stripCitations(v: unknown): unknown {
+  if (typeof v === "string") {
+    return v
+      .replace(/\s*\(\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)\)/g, "")
+      .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, "$1")
+      .replace(/\?utm_source=openai/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+  }
+  if (Array.isArray(v)) return v.map(stripCitations);
+  if (v && typeof v === "object") {
+    const o: Record<string, unknown> = {};
+    for (const [k, val] of Object.entries(v)) {
+      // keep real URL fields intact
+      o[k] = k === "url" && typeof val === "string" ? val.replace(/\?utm_source=openai$/, "") : stripCitations(val);
+    }
+    return o;
+  }
+  return v;
+}
+
+function parseLoose(raw: string): AssistantTurn | null {
+  let s = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  const start = s.indexOf("{");
+  const end = s.lastIndexOf("}");
+  if (start >= 0 && end > start) s = s.slice(start, end + 1);
+  try { return JSON.parse(s); } catch { /* try repair */ }
+  try { return JSON.parse(jsonrepair(s)); } catch { return null; }
+}
+
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
   const { raw, cited } = await runAssistantServer({ data: { history, query: userQuery } });
 
-  let parsed: AssistantTurn;
-  try {
-    parsed = JSON.parse(raw);
-  } catch {
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (!match) return { assistant_message: raw.slice(0, 1500), article: null, analysis: null };
-    parsed = JSON.parse(match[0]);
+  const loose = parseLoose(raw);
+  if (!loose) {
+    return {
+      assistant_message: "The analysis came back in an unreadable format. Please send your message again.",
+      article: null,
+      analysis: null,
+    };
   }
+  const parsed = stripCitations(loose) as AssistantTurn;
 
   if (parsed.analysis) {
     const a = parsed.analysis;

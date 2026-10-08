@@ -205,10 +205,12 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
           <Card className="p-5">
             <ul className="space-y-2 text-sm">
               {result.reasoning
-                .split(/[.\n]+/)
-                .map((s) => s.trim())
+                .replace(/\(?\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)\)?/g, "$1")
+                .replace(/https?:\/\/\S+/g, "")
+                .split(/(?<=[.!?])\s+(?=[A-ZÀ-Ý0-9"“(₱])|\n+/)
+                .map((s) => s.trim().replace(/[.\s]+$/, ""))
                 .filter((s) => s.length > 4)
-                .slice(0, 6)
+                .slice(0, 8)
                 .map((s, i) => (
                   <li key={i} className="flex gap-2">
                     <span className="text-muted-foreground mt-1">•</span>

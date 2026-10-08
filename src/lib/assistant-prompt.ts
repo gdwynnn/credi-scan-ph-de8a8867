@@ -56,7 +56,10 @@ Source trust score = sum of weights for "pass" (+ half weight for "mixed"), resc
 Greetings/off-topic: short reply, article=null, analysis=null.
 Ask a clarifying question (needs_clarification=true) only if an essential detail is missing and searching cannot resolve it. Never ask "where did you hear this?".
 
-Respond with ONLY one JSON object matching the schema. No markdown fences, no text outside the JSON.`;
+### OUTPUT FORMAT (strict)
+Respond with ONLY one valid JSON object matching the schema. No markdown fences, no text outside the JSON.
+- Inside string values NEVER put markdown links, inline citations like "([site](url))", or raw URLs — URLs belong ONLY in the "url" fields.
+- Escape any double quote inside a string as \\" (prefer single quotes ' for quoted speech). No line breaks inside strings.`;
 
 export const SCHEMA = `Schema:
 {
