@@ -82,7 +82,22 @@ export function ChatView({ threadId }: Props) {
       setMessages((m) => [...m, savedUser]);
 
       // Build history from the messages we had before this send
-      const history: ChatTurn[] = messages.map((m) => ({ role: m.role, content: m.content }));
+      const history: ChatTurn[] = messages.map((m) => {
+        if (m.role !== "assistant") return { role: m.role, content: m.content };
+        const art = m.analysis?.article;
+        const an = m.analysis?.analysis;
+        let content = m.content;
+        if (art || an) {
+          content += `\n\n[Previous result]`;
+          if (art) content += `\nArticle: ${art.headline} — ${art.source}${art.published ? ` (${art.published})` : ""}\n${art.body.slice(0, 1500)}`;
+          if (an) {
+            content += `\nVerdict: ${an.verdict} (${an.confidence}%)\nSummary: ${an.summary}`;
+            const links = (an.verification_links ?? []).slice(0, 5).map((l) => `${l.label}: ${l.url}`).join("\n");
+            if (links) content += `\nSources:\n${links}`;
+          }
+        }
+        return { role: m.role, content: content.slice(0, 6000) };
+      });
 
       const turn = await runAssistant(history, text);
 
