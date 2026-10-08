@@ -80,7 +80,7 @@ export const runAssistantServer = createServerFn({ method: "POST" })
       ...data.history.slice(-20).map((m) => ({ role: m.role, content: m.content })),
       {
         role: "user",
-        content: `${SCHEMA}\n\nToday's date (UTC): ${new Date().toISOString().slice(0, 10)}${linkEvidence}\n\nUser request:\n"""\n${data.query}\n"""`,
+        content: `Respond with a single valid JSON object.\n${SCHEMA}\n\nToday's date (UTC): ${new Date().toISOString().slice(0, 10)}${linkEvidence}\n\nUser request:\n"""\n${data.query}\n"""`,
       },
     ];
 
