@@ -123,7 +123,7 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     }
     a.verification_links = links.slice(0, 10);
     a.credibility_indicators = Array.isArray(a.credibility_indicators)
-      ? a.credibility_indicators.filter((c) => c && typeof c.id === "string" && typeof c.name === "string").slice(0, 12)
+      ? a.credibility_indicators.filter((c) => c && typeof c.id === "string" && typeof c.name === "string").slice(0, 24)
       : [];
     a.input_text = parsed.article ? `${parsed.article.headline}\n\n${parsed.article.body}` : userQuery;
     a.input_url = userQuery.match(/https?:\/\/[^\s<>"')]+/i)?.[0] ?? null;

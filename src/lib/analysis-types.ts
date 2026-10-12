@@ -45,7 +45,21 @@ export interface CredibilityIndicator {
   justification: string;
 }
 
-export const INSTRUMENT_NAME = "NewsGuard Rating Process — 9 Journalistic Criteria";
+export const INSTRUMENT_NAME = "Hybrid: Credibility Coalition (content) + NewsGuard 9 Criteria (source)";
+export const CONTENT_INSTRUMENT = "Credibility Coalition — Content Credibility Indicators";
+export const SOURCE_INSTRUMENT = "NewsGuard Rating Process — 9 Journalistic Criteria";
+
+/** Content credibility score (0-100) over C-indicators; null if none. */
+export function contentCredibilityScore(ind: CredibilityIndicator[]): number | null {
+  let got = 0, max = 0;
+  for (const i of ind) {
+    if (i.group !== "content" || i.score === "not_applicable") continue;
+    max += 1;
+    if (i.score === "pass") got += 1;
+    else if (i.score === "mixed") got += 0.5;
+  }
+  return max > 0 ? Math.round((got / max) * 100) : null;
+}
 
 export const CRITERIA_WEIGHTS: Record<string, number> = {
   N1: 22, N2: 18, N3: 12.5, N4: 12.5, N5: 10, N6: 7.5, N7: 7.5, N8: 5, N9: 5,

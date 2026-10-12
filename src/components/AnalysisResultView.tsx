@@ -23,7 +23,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import type { AnalysisResult, CredibilityIndicator, VerificationLink } from "@/lib/analysis-types";
-import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore } from "@/lib/analysis-types";
+import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore, contentCredibilityScore } from "@/lib/analysis-types";
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 
@@ -504,9 +504,9 @@ function ModelLayer({ step, title, desc }: { step: number; title: string; desc: 
 // Credibility Coalition — Content Credibility Indicators scorecard
 
 const GROUP_META: Record<CredibilityIndicator["group"], { label: string; blurb: string }> = {
-  credibility: { label: "Credibility", blurb: "Is the website's reporting accurate and responsible?" },
-  transparency: { label: "Transparency", blurb: "Does the website disclose who runs and funds it?" },
-  content: { label: "Content", blurb: "Signals from the article itself" },
+  credibility: { label: "Layer B — Source Credibility (NewsGuard)", blurb: "Is the website's reporting accurate and responsible?" },
+  transparency: { label: "Layer B — Source Transparency (NewsGuard)", blurb: "Does the website disclose who runs and funds it?" },
+  content: { label: "Layer A — Content (Credibility Coalition)", blurb: "Signals from the article text itself" },
   context: { label: "Context", blurb: "How the claim sits in the wider ecosystem" },
   publisher: { label: "Publisher", blurb: "Who is publishing and their track record" },
 };
@@ -544,20 +544,26 @@ function humanizeName(name: string) {
 }
 
 function IndicatorScorecard({ indicators }: { indicators: CredibilityIndicator[] }) {
-  const groups: CredibilityIndicator["group"][] = ["credibility", "transparency", "content", "context", "publisher"];
+  const groups: CredibilityIndicator["group"][] = ["content", "credibility", "transparency", "content", "context", "publisher"];
   const passes = indicators.filter((i) => i.score === "pass").length;
   const fails = indicators.filter((i) => i.score === "fail").length;
   const mixed = indicators.filter((i) => i.score === "mixed").length;
   const trust = sourceTrustScore(indicators);
+  const contentScore = contentCredibilityScore(indicators);
 
   return (
     <section>
       <SectionTitle
-        title="Source Trust Scorecard"
-        subtitle={`The website where this content was published, scored against the ${INSTRUMENT_NAME}. 60+ points = generally trustworthy.`}
+        title="Hybrid Credibility Scorecard"
+        subtitle={`${INSTRUMENT_NAME}. Layer A rates the text; Layer B rates the publishing website (60+ = generally trustworthy).`}
       />
       <Card className="p-5">
         <div className="flex flex-wrap items-center gap-2 mb-5 text-xs">
+          {contentScore !== null && (
+            <Badge className="border-0 bg-primary text-primary-foreground">
+              Content: {contentScore}/100
+            </Badge>
+          )}
           {trust !== null && (
             <Badge className="border-0 bg-foreground text-background">
               Source trust: {trust}/100
