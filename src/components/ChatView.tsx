@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -23,19 +23,57 @@ interface Props {
   threadId: string | null;
 }
 
-const STARTERS = [
+const STARTER_POOL = [
   "Totoo bang inaprubahan ni Marcos ang four-day work week?",
   "Did DepEd really remove Mathematics from the curriculum?",
   "Is it true that classes are suspended nationwide tomorrow?",
   "May Facebook post na sabi ₱10,000 ang matatanggap ng bawat estudyante. Totoo ba?",
+  "Tataas ba talaga ang pamasahe sa MRT ngayong buwan?",
+  "Is PhilHealth really giving free annual check-ups to all members?",
+  "Totoo bang may bagong holiday na idineklara ng Malacañang?",
+  "Did the LTO announce that old driver's licenses are no longer valid?",
+  "May lumabas na balita na libre na ang tuition sa lahat ng SUCs. Totoo ba?",
+  "Is PAGASA warning about a super typhoon hitting Luzon this week?",
+  "Totoo bang ibabalik ang mandatory ROTC sa college?",
+  "Did the BSP really release a new ₱1,000 polymer bill design?",
+  "Is it true that SIM cards not registered will be deactivated again?",
+  "May viral post na sabi may ayuda ang DSWD para sa lahat ng senior citizens. Totoo ba?",
 ];
+
+function pickStarters(n = 4) {
+  const a = [...STARTER_POOL];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a.slice(0, n);
+}
 
 export function ChatView({ threadId }: Props) {
   const navigate = useNavigate();
   const [messages, setMessages] = useState<MessageRow[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
+  const [starters, setStarters] = useState<string[]>(() => STARTER_POOL.slice(0, 4));
+  const [shuffleSpin, setShuffleSpin] = useState(0);
+  const [attention, setAttention] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
+
+  // Randomize on the client only (avoids hydration mismatch)
+  useEffect(() => {
+    setStarters(pickStarters());
+  }, [threadId]);
+
+  // Sidebar asks us to nudge the user when "New investigation" is pressed on an empty canvas
+  useEffect(() => {
+    function onNudge() {
+      setAttention(true);
+      taRef.current?.focus();
+      window.setTimeout(() => setAttention(false), 1600);
+    }
+    window.addEventListener("crediscan:nudge-input", onNudge);
+    return () => window.removeEventListener("crediscan:nudge-input", onNudge);
+  }, []);
   const endRef = useRef<HTMLDivElement>(null);
 
   // Load messages when thread changes
@@ -132,24 +170,47 @@ export function ChatView({ threadId }: Props) {
         <div className="mx-auto max-w-3xl px-6 py-8 space-y-6">
           {empty && (
             <div className="text-center py-10">
-              <div className="h-14 w-14 rounded-full bg-foreground text-background grid place-items-center mx-auto mb-4">
-                <ShieldCheck className="h-7 w-7" />
+              <div className="relative h-14 w-14 mx-auto mb-4 animate-float">
+                <span className="absolute inset-0 rounded-full bg-accent/40 animate-ping-slow" />
+                <div className="relative h-14 w-14 rounded-full bg-foreground text-background grid place-items-center shadow-lg">
+                  <ShieldCheck className="h-7 w-7" />
+                </div>
               </div>
-              <h1 className="text-2xl md:text-3xl font-bold tracking-tight">
+              <h1 className="text-2xl md:text-3xl font-bold tracking-tight animate-enter-up text-gradient-ink">
                 What news would you like me to investigate today?
               </h1>
-              <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
+              <p
+                className="text-sm text-muted-foreground mt-2 max-w-md mx-auto animate-enter-up"
+                style={{ animationDelay: "80ms" }}
+              >
                 Just ask in plain English or Tagalog. I'll find the most likely article, then run it
                 through the credibility pipeline.
               </p>
-              <div className="grid sm:grid-cols-2 gap-2 mt-8 text-left">
-                {STARTERS.map((s) => (
+              <div className="flex items-center justify-between mt-8 mb-2 text-xs text-muted-foreground">
+                <span className="uppercase tracking-widest">Quick checks</span>
+                <button
+                  onClick={() => {
+                    setShuffleSpin((n) => n + 1);
+                    setStarters(pickStarters());
+                  }}
+                  className="inline-flex items-center gap-1 rounded-md px-2 py-1 hover:bg-muted hover:text-foreground transition-colors"
+                >
+                  <Shuffle
+                    key={shuffleSpin}
+                    className="h-3.5 w-3.5 animate-spin-once"
+                  />
+                  Shuffle
+                </button>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-2 text-left">
+                {starters.map((s, i) => (
                   <button
-                    key={s}
+                    key={`${shuffleSpin}-${s}`}
                     onClick={() => handleSend(s)}
-                    className="text-sm rounded-lg border bg-card p-4 hover:border-foreground transition-colors"
+                    style={{ animationDelay: `${120 + i * 70}ms` }}
+                    className="starter-card group text-sm rounded-lg border bg-card p-4 animate-enter-up"
                   >
-                    <Sparkles className="h-4 w-4 mb-2 text-muted-foreground" />
+                    <Sparkles className="h-4 w-4 mb-2 text-muted-foreground group-hover:text-accent transition-colors group-hover:rotate-12 duration-300" />
                     {s}
                   </button>
                 ))}
@@ -158,17 +219,28 @@ export function ChatView({ threadId }: Props) {
           )}
 
           {messages.map((m) => (
-            <MessageBubble key={m.id} message={m} />
+            <div key={m.id} className="animate-enter-up">
+              <MessageBubble message={m} />
+            </div>
           ))}
 
           {sending && (
-            <div className="flex gap-3 items-center text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Investigating…
+            <div className="flex gap-3 items-center text-sm text-muted-foreground animate-enter-up">
+              <span className="relative grid place-items-center h-6 w-6">
+                <span className="absolute inset-0 rounded-full bg-accent/30 animate-ping" />
+                <span className="h-2.5 w-2.5 rounded-full bg-accent" />
+              </span>
+              <span className="shimmer-text font-medium">Investigating sources</span>
+              <span className="flex gap-1">
+                <span className="dot" />
+                <span className="dot" style={{ animationDelay: "150ms" }} />
+                <span className="dot" style={{ animationDelay: "300ms" }} />
+              </span>
             </div>
           )}
 
           <div ref={endRef} />
+
         </div>
       </div>
 
