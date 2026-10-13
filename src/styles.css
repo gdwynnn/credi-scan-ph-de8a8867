@@ -128,3 +128,35 @@
     letter-spacing: -0.01em;
   }
 }
+
+/* ---------- Motion ---------- */
+@keyframes enter-up { from { opacity: 0; transform: translateY(14px) scale(.98); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes ping-slow { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.9); opacity: 0; } }
+@keyframes spin-once { from { transform: rotate(0); } to { transform: rotate(360deg); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@keyframes dot-bounce { 0%,80%,100% { transform: translateY(0); opacity: .4; } 40% { transform: translateY(-4px); opacity: 1; } }
+@keyframes glow { 0%,100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--accent) 0%, transparent); } 40% { box-shadow: 0 0 0 4px color-mix(in oklab, var(--accent) 45%, transparent), 0 0 24px color-mix(in oklab, var(--accent) 40%, transparent); } }
+
+@utility animate-enter-up { animation: enter-up .55s cubic-bezier(.2,.8,.2,1) both; }
+@utility animate-float { animation: float 4s ease-in-out infinite; }
+@utility animate-ping-slow { animation: ping-slow 2.4s cubic-bezier(0,0,.2,1) infinite; }
+@utility animate-spin-once { animation: spin-once .5s cubic-bezier(.2,.8,.2,1); }
+@utility attention-glow { animation: glow 1.6s ease-out; }
+@utility text-gradient-ink {
+  background: linear-gradient(120deg, var(--foreground), var(--accent), var(--foreground));
+  background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 8s linear infinite;
+}
+@utility shimmer-text {
+  background: linear-gradient(90deg, var(--muted-foreground), var(--foreground), var(--muted-foreground));
+  background-size: 200% auto; -webkit-background-clip: text; background-clip: text; color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+@utility dot { display: inline-block; height: 5px; width: 5px; border-radius: 9999px; background: var(--accent); animation: dot-bounce 1.2s infinite ease-in-out both; }
+@utility starter-card {
+  transition: transform .25s cubic-bezier(.2,.8,.2,1), box-shadow .25s, border-color .25s;
+  &:hover { transform: translateY(-3px); border-color: var(--accent); box-shadow: 0 12px 28px -14px color-mix(in oklab, var(--accent) 55%, transparent); }
+  &:active { transform: translateY(0) scale(.98); }
+}
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }

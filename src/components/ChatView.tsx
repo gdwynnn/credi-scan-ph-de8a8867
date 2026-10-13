@@ -246,7 +246,7 @@ export function ChatView({ threadId }: Props) {
 
       <div className="border-t bg-background">
         <div className="mx-auto max-w-3xl px-6 py-4">
-          <div className="relative">
+          <div className={`relative rounded-md transition-shadow ${attention ? "attention-glow" : ""}`}>
             <Textarea
               ref={taRef}
               value={input}

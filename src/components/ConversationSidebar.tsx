@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  createThread,
+  loadMessages,
   deleteThread,
   listThreads,
   clearAll,
@@ -33,8 +33,17 @@ export function ConversationSidebar() {
   }, []);
 
   function handleNew() {
-    const t = createThread();
-    navigate({ to: "/c/$threadId", params: { threadId: t.id } });
+    const currentId = pathname.startsWith("/c/") ? pathname.slice(3) : null;
+    const onEmptyCanvas = !currentId || loadMessages(currentId).length === 0;
+    if (onEmptyCanvas) {
+      toast.info("Start an investigation first", {
+        description:
+          "You're already on a fresh investigation. Type a news claim below or tap a quick check to begin.",
+      });
+      window.dispatchEvent(new CustomEvent("crediscan:nudge-input"));
+      return;
+    }
+    navigate({ to: "/" });
   }
 
   function handleExport() {
