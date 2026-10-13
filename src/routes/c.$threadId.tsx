@@ -2,7 +2,19 @@ import { createFileRoute } from "@tanstack/react-router";
 import { ChatView } from "@/components/ChatView";
 import { ConversationSidebar } from "@/components/ConversationSidebar";
 
-export const Route = createFileRoute("/c/$threadId")({ component: ThreadPage });
+export const Route = createFileRoute("/c/$threadId")({
+  head: () => ({
+    meta: [
+      { title: "Your Investigation — CrediScan" },
+      { name: "description", content: "Continue a saved CrediScan investigation and review the claim, evidence, and credibility findings." },
+      { property: "og:title", content: "Your Investigation — CrediScan" },
+      { property: "og:description", content: "Continue your evidence-guided news investigation with CrediScan." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
+  component: ThreadPage,
+});
 
 function ThreadPage() {
   const { threadId } = Route.useParams();
