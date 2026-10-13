@@ -1,2 +1,3 @@
 - AI calls run server-side in src/lib/assistant.functions.ts (OpenAI Responses + web_search); keys never reach the browser.
 - Prompt lives in src/lib/assistant-prompt.ts: Role Prompting + Structured Evidence-Guided Prompting, scored with the NewsGuard 9-criteria instrument.
+- Scorecard is hybrid: C1-C8 (group content, Credibility Coalition) + N1-N9 (NewsGuard) in credibility_indicators; scores computed in analysis-types.ts — keeps text and source layers separable.
