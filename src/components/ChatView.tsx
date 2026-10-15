@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AnalysisResultView } from "@/components/AnalysisResultView";
 import { MissingKeyBanner } from "@/components/MissingKeyBanner";
+import { InvestigationStepper } from "@/components/InvestigationStepper";
 import { hasOpenAIKey, runAssistant, type ChatTurn } from "@/lib/openai-client";
 import {
   appendAssistantMessage,
@@ -224,20 +225,7 @@ export function ChatView({ threadId }: Props) {
             </div>
           ))}
 
-          {sending && (
-            <div className="flex gap-3 items-center text-sm text-muted-foreground animate-enter-up">
-              <span className="relative grid place-items-center h-6 w-6">
-                <span className="absolute inset-0 rounded-full bg-accent/30 animate-ping" />
-                <span className="h-2.5 w-2.5 rounded-full bg-accent" />
-              </span>
-              <span className="shimmer-text font-medium">Investigating sources</span>
-              <span className="flex gap-1">
-                <span className="dot" />
-                <span className="dot" style={{ animationDelay: "150ms" }} />
-                <span className="dot" style={{ animationDelay: "300ms" }} />
-              </span>
-            </div>
-          )}
+          {sending && <InvestigationStepper />}
 
           <div ref={endRef} />
 
