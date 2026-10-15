@@ -47,19 +47,59 @@ function stripCitations(v: unknown): unknown {
   return v;
 }
 
+// Return the substring of the first balanced {...} starting at `from`,
+// ignoring any stray characters the model emits after the closing brace.
+function balancedObject(s: string, from: number): string | null {
+  if (from < 0) return null;
+  let depth = 0, inStr = false;
+  for (let i = from; i < s.length; i++) {
+    const ch = s[i];
+    if (inStr) {
+      if (ch === "\\") { i++; continue; }
+      if (ch === '"') inStr = false;
+      continue;
+    }
+    if (ch === '"') inStr = true;
+    else if (ch === "{") depth++;
+    else if (ch === "}") { depth--; if (depth === 0) return s.slice(from, i + 1); }
+  }
+  return null;
+}
+
+function tryParse(s: string): unknown {
+  for (const candidate of [s, escapeInnerQuotes(s)]) {
+    try { return JSON.parse(candidate); } catch { /* next */ }
+    try { return JSON.parse(jsonrepair(candidate)); } catch { /* next */ }
+  }
+  return undefined;
+}
+
 function parseLoose(raw: string): AssistantTurn | null {
-  let s = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
+  const s = raw.trim().replace(/^```(?:json)?\s*/i, "").replace(/```\s*$/, "");
   const start = s.indexOf("{");
-  const end = s.lastIndexOf("}");
-  if (start >= 0 && end > start) s = s.slice(start, end + 1);
-  try { return JSON.parse(s); } catch { /* try repair */ }
-  try { return JSON.parse(jsonrepair(s)); } catch { /* try quote fix */ }
-  const fixed = escapeInnerQuotes(s);
-  try { return JSON.parse(fixed); } catch { /* */ }
-  try { return JSON.parse(jsonrepair(fixed)); } catch { /* */ }
-  // Last resort: salvage the chat message so the user still gets an answer.
+  const candidates = [balancedObject(s, start), start >= 0 ? s.slice(start, s.lastIndexOf("}") + 1) : null];
+  for (const c of candidates) {
+    if (!c) continue;
+    const v = tryParse(c) as AssistantTurn | undefined;
+    if (v && typeof v === "object" && typeof v.assistant_message === "string") return v;
+  }
+  // Salvage each block independently so one broken field doesn't drop the whole report.
   const msg = s.match(/"assistant_message"\s*:\s*"([\s\S]*?)"\s*,\s*"(?:article|analysis|needs_clarification)"/)?.[1];
-  if (msg) return { assistant_message: msg.replace(/\\n/g, "\n").replace(/\\"/g, '"'), article: null, analysis: null };
+  const block = (key: string) => {
+    const m = new RegExp(`"${key}"\\s*:\\s*\\{`).exec(s);
+    if (!m) return null;
+    const obj = balancedObject(s, m.index + m[0].length - 1);
+    return obj ? ((tryParse(obj) as never) ?? null) : null;
+  };
+  const article = block("article");
+  const analysis = block("analysis");
+  if (msg || analysis) {
+    return {
+      assistant_message: (msg ?? "Here is my analysis.").replace(/\\n/g, "\n").replace(/\\"/g, '"'),
+      article,
+      analysis,
+    };
+  }
   return null;
 }
 
@@ -88,9 +128,23 @@ function escapeInnerQuotes(s: string): string {
 }
 
 export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
-  const { raw, cited } = await runAssistantServer({ data: { history, query: userQuery } });
+  let { raw, cited } = await runAssistantServer({ data: { history, query: userQuery } });
 
-  const loose = parseLoose(raw);
+  let loose = parseLoose(raw);
+  // If the model answered in prose only (no report) without asking for clarification,
+  // retry once and insist on the full structured report.
+  if (!loose?.analysis && !loose?.needs_clarification) {
+    try {
+      const retry = await runAssistantServer({
+        data: {
+          history,
+          query: `${userQuery}\n\n[System note: your previous reply omitted the structured report. Return the COMPLETE JSON object including "article" and "analysis" with all 17 credibility_indicators. Output only the JSON object and stop right after its final closing brace.]`,
+        },
+      });
+      const second = parseLoose(retry.raw);
+      if (second?.analysis) { loose = second; raw = retry.raw; cited = retry.cited; }
+    } catch { /* keep first answer */ }
+  }
   if (!loose) {
     return {
       assistant_message: "The analysis came back in an unreadable format. Please send your message again.",
