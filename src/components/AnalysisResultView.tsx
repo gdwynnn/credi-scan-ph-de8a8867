@@ -26,6 +26,7 @@ import type { AnalysisResult, CredibilityIndicator, VerificationLink } from "@/l
 import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore, contentCredibilityScore } from "@/lib/analysis-types";
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
+import { DualGauge } from "@/components/DualGauge";
 
 function verdictAccent(tone: "success" | "warning" | "danger") {
   return tone === "success"
@@ -120,6 +121,17 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
       {/* Classification Result */}
       <section>
         <SectionTitle title="Classification Result" />
+        {result.credibility_indicators && result.credibility_indicators.length > 0 && (
+          <div className="mb-4">
+            <DualGauge
+              content={contentCredibilityScore(result.credibility_indicators)}
+              source={sourceTrustScore(result.credibility_indicators)}
+              verdictLabel={meta.label}
+              confidence={result.confidence}
+              accent={accent}
+            />
+          </div>
+        )}
         <Card
           className="p-5 border-2"
           style={{
