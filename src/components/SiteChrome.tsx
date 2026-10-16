@@ -36,6 +36,7 @@ export function SiteHeader() {
             </Link>
           ))}
         </nav>
+        <ThemeToggle />
       </div>
     </header>
   );

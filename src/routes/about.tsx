@@ -22,8 +22,9 @@ function About() {
     <div className="mx-auto max-w-3xl px-4 md:px-6 py-12 space-y-10">
       <header className="space-y-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">About</div>
-        <h1 className="font-serif text-4xl md:text-5xl">SURI</h1>
-        <p className="text-lg text-muted-foreground">An Intelligent System for Fake News Detection Using Natural Language Processing.</p>
+        <h1 className="font-serif text-5xl md:text-6xl text-gradient-ink animate-enter-up">SURI</h1>
+        <p className="text-lg font-medium animate-enter-up" style={{ animationDelay: "80ms" }}>System for Unbiased Research and Information verification</p>
+        <p className="text-muted-foreground animate-enter-up" style={{ animationDelay: "160ms" }}>An intelligent system for fake news detection using natural language processing. "Suri" is Filipino for "to examine closely."</p>
       </header>
       <p className="leading-relaxed">
         SURI helps Filipinos, and anyone worldwide, check whether a news story, post, or rumor is real before sharing it.
