@@ -37,7 +37,7 @@ function About() {
         <p className="text-sm text-muted-foreground mb-4">This system was jointly developed by:</p>
         <div className="grid gap-3 sm:grid-cols-3">
           {TEAM.map((n) => (
-            <Card key={n} className="p-5 text-center">
+            <Card key={n} className="p-5 text-center lift">
               <div className="mx-auto h-12 w-12 rounded-full bg-primary text-primary-foreground grid place-items-center font-serif text-lg">
                 {n.split(" ").map((w) => w[0]).slice(0, 2).join("")}
               </div>

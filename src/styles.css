@@ -168,3 +168,33 @@
   &:active { transform: translateY(0) scale(.98); }
 }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
+
+/* ---------- Theme + fluid interactions ---------- */
+.theme-fade, .theme-fade *, .theme-fade *::before, .theme-fade *::after {
+  transition: background-color .45s cubic-bezier(.22,1,.36,1), color .45s cubic-bezier(.22,1,.36,1), border-color .45s cubic-bezier(.22,1,.36,1), fill .45s, stroke .45s !important;
+}
+@keyframes theme-swap { from { transform: rotate(-120deg) scale(.3); opacity: 0; } 60% { transform: rotate(15deg) scale(1.15); opacity: 1; } to { transform: rotate(0) scale(1); } }
+.theme-icon { animation: theme-swap .55s cubic-bezier(.34,1.56,.64,1) both; }
+@utility btn-pop {
+  transition: transform .25s cubic-bezier(.34,1.56,.64,1), box-shadow .25s, border-color .25s, background-color .25s;
+  &:hover { transform: translateY(-1px); box-shadow: 0 8px 20px -10px color-mix(in oklab, var(--accent) 60%, transparent); }
+  &:active { transform: scale(.92); }
+}
+@utility lift {
+  transition: transform .35s cubic-bezier(.22,1,.36,1), box-shadow .35s, border-color .35s;
+  &:hover { transform: translateY(-4px); border-color: color-mix(in oklab, var(--accent) 55%, var(--border)); box-shadow: 0 18px 36px -20px color-mix(in oklab, var(--accent) 50%, transparent); }
+}
+@utility nav-link {
+  position: relative; transition: color .25s, background-color .25s, transform .2s;
+  &:active { transform: scale(.95); }
+}
+@utility logo-mark {
+  transition: transform .5s cubic-bezier(.34,1.56,.64,1);
+  &:hover { transform: rotate(-8deg) scale(1.08); }
+}
+@utility formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .95rem;
+  padding: .75rem 1rem; border-radius: var(--radius); background: var(--muted); border: 1px solid var(--border);
+}
+button, a { -webkit-tap-highlight-color: transparent; }
+@media (prefers-reduced-motion: reduce) { .theme-icon { animation: none; } }

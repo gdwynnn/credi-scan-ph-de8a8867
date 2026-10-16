@@ -43,7 +43,7 @@ function HowItWorks() {
         <h2 className="font-serif text-2xl mb-5">The pipeline</h2>
         <ol className="grid gap-3 md:grid-cols-2">
           {STEPS.map(([t, d], i) => (
-            <Card key={t} className="p-5">
+            <Card key={t} className="p-5 lift animate-enter-up" style={{ animationDelay: `${i * 70}ms` }}>
               <div className="font-mono text-xs text-muted-foreground">STEP {i + 1}</div>
               <div className="font-medium mt-1">{t}</div>
               <p className="text-sm text-muted-foreground mt-1">{d}</p>
