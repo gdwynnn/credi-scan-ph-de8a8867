@@ -205,7 +205,7 @@ export interface ImportResult {
 export function importAll(bundle: unknown): ImportResult {
   if (!bundle || typeof bundle !== "object") throw new Error("Invalid file");
   const b = bundle as Partial<ExportBundle>;
-  if (b.format !== "crediscan.chats" || !b.data) throw new Error("Not a CrediScan export file");
+  if (b.format !== "crediscan.chats" || !b.data) throw new Error("Not a SURI export file");
   const incoming = b.data as Store;
   if (!Array.isArray(incoming.threads) || typeof incoming.messages !== "object") {
     throw new Error("Corrupt export file");

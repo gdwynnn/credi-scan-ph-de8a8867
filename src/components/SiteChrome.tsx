@@ -17,9 +17,9 @@ export function SiteHeader() {
             <ShieldCheck className="h-4 w-4" />
           </div>
           <div className="leading-tight hidden sm:block">
-            <div className="font-serif text-lg">CrediScan</div>
+            <div className="font-serif text-lg">SURI</div>
             <div className="text-[10px] uppercase tracking-widest text-muted-foreground">
-              PH Fake News Detector
+              Unbiased Research &amp; Verification
             </div>
           </div>
         </Link>

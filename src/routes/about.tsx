@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 export const Route = createFileRoute("/about")({
   head: () => ({
     meta: [
-      { title: "About CrediScan — Fake News Detection Using NLP" },
-      { name: "description", content: "CrediScan: an intelligent system for fake news detection using natural language processing, jointly developed by God Wyn Ferrer, Jaziella Mari Millares, and John Vincent Oriel." },
-      { property: "og:title", content: "About CrediScan" },
+      { title: "About SURI — Fake News Detection Using NLP" },
+      { name: "description", content: "SURI: an intelligent system for fake news detection using natural language processing, jointly developed by God Wyn Ferrer, Jaziella Mari Millares, and John Vincent Oriel." },
+      { property: "og:title", content: "About SURI" },
       { property: "og:description", content: "Jointly developed by God Wyn Ferrer, Jaziella Mari Millares, and John Vincent Oriel." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -22,11 +22,11 @@ function About() {
     <div className="mx-auto max-w-3xl px-4 md:px-6 py-12 space-y-10">
       <header className="space-y-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">About</div>
-        <h1 className="font-serif text-4xl md:text-5xl">CrediScan</h1>
+        <h1 className="font-serif text-4xl md:text-5xl">SURI</h1>
         <p className="text-lg text-muted-foreground">An Intelligent System for Fake News Detection Using Natural Language Processing.</p>
       </header>
       <p className="leading-relaxed">
-        CrediScan helps Filipinos, and anyone worldwide, check whether a news story, post, or rumor is real before sharing it.
+        SURI helps Filipinos, and anyone worldwide, check whether a news story, post, or rumor is real before sharing it.
         Just ask in your own words or paste a link. The system searches trusted sources on its own, checks that those websites are
         legitimate, scores both the text and the source with a hybrid credibility instrument, and returns a clear verdict with
         direct links to the evidence.

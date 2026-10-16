@@ -95,7 +95,7 @@ export function buildReportPdf(
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
   doc.setTextColor(255, 255, 255);
-  doc.text("CREDISCAN", M, 40);
+  doc.text("SURI", M, 40);
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(196, 202, 214);
@@ -255,7 +255,7 @@ export function buildReportPdf(
     doc.setFontSize(8);
     setColor(MUTED);
     doc.text(
-      "CrediScan is a decision-support tool. Always cross-check with primary sources.",
+      "SURI is a decision-support tool. Always cross-check with primary sources.",
       M,
       PAGE_H - M + 20,
     );
@@ -272,5 +272,5 @@ export function downloadReportPdf(
 ) {
   const doc = buildReportPdf(result, article, assistantMessage);
   const date = new Date().toISOString().slice(0, 10);
-  doc.save(`CrediScan-Report-${date}.pdf`);
+  doc.save(`SURI-Report-${date}.pdf`);
 }

@@ -30,7 +30,7 @@ async function checkLink(url: string): Promise<LinkCheck> {
       redirect: "follow",
       signal: AbortSignal.timeout(10000),
       headers: {
-        "User-Agent": "Mozilla/5.0 (compatible; CrediScanBot/1.0; +fact-check)",
+        "User-Agent": "Mozilla/5.0 (compatible; SURIBot/1.0; +fact-check)",
         Accept: "text/html,application/xhtml+xml",
       },
     });

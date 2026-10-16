@@ -4,9 +4,9 @@ import { Card } from "@/components/ui/card";
 export const Route = createFileRoute("/how-it-works")({
   head: () => ({
     meta: [
-      { title: "How CrediScan Works — Hybrid Fake News Detection Pipeline" },
-      { name: "description", content: "The CrediScan pipeline: claim extraction, live web search, source vetting, and a hybrid Credibility Coalition + NewsGuard scorecard." },
-      { property: "og:title", content: "How CrediScan Works" },
+      { title: "How SURI Works — Hybrid Fake News Detection Pipeline" },
+      { name: "description", content: "The SURI pipeline: claim extraction, live web search, source vetting, and a hybrid Credibility Coalition + NewsGuard scorecard." },
+      { property: "og:title", content: "How SURI Works" },
       { property: "og:description", content: "Role Prompting + Structured Evidence-Guided Prompting with a hybrid credibility instrument." },
       { property: "og:type", content: "article" },
       { name: "twitter:card", content: "summary" },
@@ -16,8 +16,8 @@ export const Route = createFileRoute("/how-it-works")({
 });
 
 const STEPS = [
-  ["Understand the claim", "You write naturally in English, Filipino or Taglish, or paste a link. CrediScan extracts the core claim: who, what, where, when. Follow-up questions in the same investigation are understood using earlier answers."],
-  ["Open the link", "Pasted links are opened directly. CrediScan reports if a page is readable, needs a login, is private, deleted, or unreachable."],
+  ["Understand the claim", "You write naturally in English, Filipino or Taglish, or paste a link. SURI extracts the core claim: who, what, where, when. Follow-up questions in the same investigation are understood using earlier answers."],
+  ["Open the link", "Pasted links are opened directly. SURI reports if a page is readable, needs a login, is private, deleted, or unreachable."],
   ["Search the web itself", "No list of websites is needed. The AI searches live for government, LGU, school, news and fact-checker coverage in English and Filipino."],
   ["Vet every source", "Each website found is checked for legitimacy, including look-alike or impostor domains."],
   ["Score the hybrid instrument", "Layer A scores the text (Credibility Coalition). Layer B scores the publishing website (NewsGuard)."],
@@ -32,9 +32,9 @@ function HowItWorks() {
     <div className="mx-auto max-w-4xl px-4 md:px-6 py-12 space-y-14">
       <header className="space-y-3">
         <div className="text-xs uppercase tracking-widest text-muted-foreground">Methodology</div>
-        <h1 className="font-serif text-4xl md:text-5xl">How CrediScan works</h1>
+        <h1 className="font-serif text-4xl md:text-5xl">How SURI works</h1>
         <p className="text-muted-foreground max-w-2xl">
-          CrediScan combines <strong className="text-foreground">Role Prompting</strong> (the AI acts as a senior fact-checker) with{" "}
+          SURI combines <strong className="text-foreground">Role Prompting</strong> (the AI acts as a senior fact-checker) with{" "}
           <strong className="text-foreground">Structured Evidence-Guided Prompting</strong> (it must gather and list evidence, score it, and only then decide).
         </p>
       </header>

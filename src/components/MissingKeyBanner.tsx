@@ -7,7 +7,7 @@ export function MissingKeyBanner() {
       <div className="flex items-start gap-4">
         <KeyRound className="h-5 w-5 shrink-0" />
         <p className="text-sm text-muted-foreground">
-          CrediScan's AI key is not configured yet, so no analyses can run.
+          SURI's AI key is not configured yet, so no analyses can run.
         </p>
       </div>
     </Card>
