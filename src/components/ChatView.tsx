@@ -144,6 +144,9 @@ export function ChatView({ threadId }: Props) {
         assistant_message: turn.assistant_message,
         article: turn.article,
         analysis: turn.analysis,
+        needs_clarification: turn.needs_clarification,
+        specificity_tip: turn.specificity_tip,
+        clarification_suggestions: turn.clarification_suggestions,
       });
       setMessages((m) => [...m, savedA]);
 
