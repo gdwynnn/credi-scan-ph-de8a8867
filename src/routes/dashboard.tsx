@@ -9,9 +9,9 @@ import { VERDICT_META, type Verdict } from "@/lib/analysis-types";
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
     meta: [
-      { title: "Live Search Dashboard — CrediScan" },
-      { name: "description", content: "Search and review every claim you've checked with CrediScan: verdicts, confidence, and trends." },
-      { property: "og:title", content: "CrediScan Live Search Dashboard" },
+      { title: "Live Search Dashboard — SURI" },
+      { name: "description", content: "Search and review every claim you've checked with SURI: verdicts, confidence, and trends." },
+      { property: "og:title", content: "SURI Live Search Dashboard" },
       { property: "og:description", content: "Search and review every claim you've checked." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },

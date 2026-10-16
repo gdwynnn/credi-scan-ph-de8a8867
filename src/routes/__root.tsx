@@ -75,21 +75,21 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "CrediScan — Fake News Detection for the Philippines" },
+      { title: "SURI — Fake News Detection for the Philippines" },
       {
         name: "description",
         content:
           "AI-powered fake news detector tuned for Philippine context. Paste an article or URL and get a credibility verdict, risk factors, and trusted PH sources to verify the claim.",
       },
-      { name: "author", content: "CrediScan" },
-      { property: "og:title", content: "CrediScan — Fake News Detection for the Philippines" },
+      { name: "author", content: "SURI" },
+      { property: "og:title", content: "SURI — Fake News Detection for the Philippines" },
       {
         property: "og:description",
         content: "Spot misinformation faster with AI tuned for the Philippine news ecosystem.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
-      { name: "twitter:title", content: "CrediScan — Fake News Detection for the Philippines" },
+      { name: "twitter:title", content: "SURI — Fake News Detection for the Philippines" },
       { name: "description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },
       { property: "og:description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },
       { name: "twitter:description", content: "Pinoy News Guard detects fake news using NLP and provides links to verified Philippine news sources." },

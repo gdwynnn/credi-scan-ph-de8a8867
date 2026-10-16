@@ -267,7 +267,7 @@ export function ChatView({ threadId }: Props) {
             </Button>
           </div>
           <p className="text-[11px] text-muted-foreground mt-2">
-            CrediScan is a decision-support tool. Always cross-check with primary sources.
+            SURI is a decision-support tool. Always cross-check with primary sources.
           </p>
         </div>
       </div>
