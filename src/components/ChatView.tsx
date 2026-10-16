@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle, Lightbulb, ArrowRight } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -144,6 +144,9 @@ export function ChatView({ threadId }: Props) {
         assistant_message: turn.assistant_message,
         article: turn.article,
         analysis: turn.analysis,
+        needs_clarification: turn.needs_clarification,
+        specificity_tip: turn.specificity_tip,
+        clarification_suggestions: turn.clarification_suggestions,
       });
       setMessages((m) => [...m, savedA]);
 
@@ -221,7 +224,11 @@ export function ChatView({ threadId }: Props) {
 
           {messages.map((m) => (
             <div key={m.id} className="animate-enter-up">
-              <MessageBubble message={m} />
+              <MessageBubble
+                message={m}
+                disabled={sending}
+                onPick={m.id === messages[messages.length - 1]?.id ? (s) => handleSend(s) : undefined}
+              />
             </div>
           ))}
 
@@ -268,7 +275,15 @@ export function ChatView({ threadId }: Props) {
   );
 }
 
-function MessageBubble({ message }: { message: MessageRow }) {
+function MessageBubble({
+  message,
+  onPick,
+  disabled,
+}: {
+  message: MessageRow;
+  onPick?: (s: string) => void;
+  disabled?: boolean;
+}) {
   if (message.role === "user") {
     return (
       <div className="flex justify-end">
@@ -293,6 +308,40 @@ function MessageBubble({ message }: { message: MessageRow }) {
           {message.content}
         </div>
       </div>
+
+      {!analysis && (payload?.clarification_suggestions?.length ?? 0) > 0 && (
+        <div className="ml-11 space-y-3 animate-enter-up">
+          <div className="flex items-start gap-2 rounded-lg border border-dashed bg-muted/40 px-4 py-3 text-sm">
+            <Lightbulb className="h-4 w-4 mt-0.5 shrink-0 text-accent" />
+            <span>
+              <span className="font-semibold">Be more specific: </span>
+              {payload?.specificity_tip ||
+                "Include the agency or office, place, date, amount, or the exact headline/post so I can check the right claim."}
+            </span>
+          </div>
+          <div className="text-xs uppercase tracking-widest text-muted-foreground">
+            Or pick one of these closest claims
+          </div>
+          <div className="grid gap-2">
+            {payload!.clarification_suggestions!.map((s, i) => (
+              <button
+                key={s}
+                disabled={!onPick || disabled}
+                onClick={() => onPick?.(s)}
+                style={{ animationDelay: `${i * 70}ms` }}
+                className="starter-card group flex items-center gap-3 text-left text-sm rounded-lg border bg-card px-4 py-3 animate-enter-up disabled:opacity-60"
+              >
+                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-muted text-xs font-semibold">
+                  {i + 1}
+                </span>
+                <span className="flex-1">{s}</span>
+                <ArrowRight className="h-4 w-4 text-muted-foreground transition-transform group-hover:translate-x-1" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
 
       {article && (
         <Card className="p-4 ml-11">

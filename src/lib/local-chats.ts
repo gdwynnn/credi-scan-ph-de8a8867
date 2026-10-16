@@ -18,6 +18,9 @@ export interface MessagePayload {
   assistant_message?: string;
   article?: AssistantArticle | null;
   analysis?: AnalysisResult | null;
+  needs_clarification?: boolean;
+  specificity_tip?: string;
+  clarification_suggestions?: string[];
 }
 
 export interface MessageRow {

@@ -19,6 +19,8 @@ export interface AssistantTurn {
   article: AssistantArticle | null;
   analysis: AnalysisResult | null;
   needs_clarification?: boolean;
+  specificity_tip?: string;
+  clarification_suggestions?: string[];
 }
 
 export interface ChatTurn {
@@ -182,6 +184,11 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     a.input_text = parsed.article ? `${parsed.article.headline}\n\n${parsed.article.body}` : userQuery;
     a.input_url = userQuery.match(/https?:\/\/[^\s<>"')]+/i)?.[0] ?? null;
   }
+
+  parsed.clarification_suggestions = Array.isArray(parsed.clarification_suggestions)
+    ? parsed.clarification_suggestions.filter((s) => typeof s === "string" && s.trim()).slice(0, 3)
+    : [];
+  if (typeof parsed.specificity_tip !== "string") parsed.specificity_tip = undefined;
 
   return parsed;
 }

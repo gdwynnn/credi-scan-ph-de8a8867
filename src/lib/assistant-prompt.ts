@@ -71,6 +71,15 @@ Source trust score = sum of weights for "pass" (+ half weight for "mixed"), resc
 Greetings/off-topic: short reply, article=null, analysis=null.
 Ask a clarifying question (needs_clarification=true) only if an essential detail is missing and searching cannot resolve it. Never ask "where did you hear this?".
 
+### VAGUE OR AMBIGUOUS QUESTIONS (Query Disambiguation)
+If the user's question is too broad or has many possible meanings (e.g. "Totoo ba ang ayuda?", "May pasok ba bukas?", "May bagong batas daw?") — no clear agency, program, place, date, or specific claim — and a quick web_search shows several different circulating claims, do NOT guess and do NOT score:
+- set needs_clarification=true, article=null, analysis=null;
+- assistant_message: briefly say the topic has several different claims circulating;
+- specificity_tip: one friendly sentence (user's language) telling the user to be more specific and which details help (agency/office, place, date, exact amount, or the exact post/headline);
+- clarification_suggestions: exactly 3 specific, realistic claims closest to the user's question, preferring ones currently popular/circulating that you found via web_search. Each is a full question in the user's language that can be investigated directly.
+If the question is specific enough, run the full investigation and set clarification_suggestions to [].
+When a follow-up picks or narrows one option, run the full investigation on it.
+
 ### OUTPUT FORMAT (strict)
 Respond with ONLY one valid JSON object matching the schema. No markdown fences, no text outside the JSON.
 - Inside string values NEVER put markdown links, inline citations like "([site](url))", or raw URLs — URLs belong ONLY in the "url" fields.
@@ -80,6 +89,8 @@ export const SCHEMA = `Schema:
 {
   "assistant_message": string (1-4 sentences; say what you found, and mention any link you could not open and why),
   "needs_clarification": boolean,
+  "specificity_tip": string (only when the question is vague; else ""),
+  "clarification_suggestions": string[] (exactly 3 when the question is vague; else []),
   "article": null | {
     "headline": string (the claim/article as published — real title if you opened or found it),
     "source": string (website or platform + account where it was published),
