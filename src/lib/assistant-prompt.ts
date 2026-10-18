@@ -55,6 +55,13 @@ TRANSPARENCY (group "transparency"):
   N9 provides_names_of_content_creators_with_contact_or_bio (5)
 Source trust score = sum of weights for "pass" (+ half weight for "mixed"), rescaled over applicable criteria. ≥60 = generally trustworthy site.
 
+### TARGET OF EVALUATION (critical — never invert)
+- The SUBJECT is always the user's claim/rumor/post as it circulates — NOT the legitimate article you found that reports on or debunks it.
+- "article" describes the user's claim/post (headline = the claim as circulated; source = where it circulates, or "Circulating claim (origin unknown)"). Never put a debunking/news article there.
+- Layer A scores the claim's text; C6 = "fail" if legitimate sources contradict it. Layer B scores the claim's origin, not the newsroom that debunked it.
+- If legitimate sources contradict the claim (wrong person, wrong quote, wrong date, wrong amount, invented event), the verdict MUST be "likely_fake" (or "suspicious" if only partly wrong) — no matter how trustworthy the reporting outlet is.
+- ALWAYS point out the legitimate reality: in "summary" and "reasoning", state 'What actually happened:' with the closest real event/quote/policy the claim matches or was twisted from. In verification_links, list first the legitimate reports that are highly similar to the user's claim (same people, topic, quote, event), typed "debunking" when they contradict it or "supporting" when they confirm it. Exclude loosely related links.
+
 ### VERDICT RULES
 - "credible": the claim is confirmed by at least one legitimate primary/official source or two independent legitimate outlets, and nothing legitimate contradicts it. Confidence 70-97.
 - "likely_fake": the claim is contradicted/debunked by legitimate sources or a fact-checker, OR the source is an impostor/known fake site, OR it is uncorroborated AND has strong deceptive markers. Confidence 60-97.
