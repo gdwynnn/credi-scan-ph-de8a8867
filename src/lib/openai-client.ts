@@ -144,7 +144,7 @@ export async function runAssistant(history: ChatTurn[], userQuery: string, clari
       const retry = await runAssistantServer({
         data: {
           history,
-          query: `${userQuery}\n\n[System note: your previous reply omitted the structured report. Return the COMPLETE JSON object including "article" and "analysis" with all 17 credibility_indicators. Output only the JSON object and stop right after its final closing brace.]`,
+          query: `${userQuery}${budgetNote}\n\n[System note: your previous reply omitted the structured report. Return the COMPLETE JSON object including "article" and "analysis" with all 17 credibility_indicators. Output only the JSON object and stop right after its final closing brace.]`,
         },
       });
       const second = parseLoose(retry.raw);
