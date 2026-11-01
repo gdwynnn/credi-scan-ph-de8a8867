@@ -138,7 +138,9 @@ export function ChatView({ threadId }: Props) {
         return { role: m.role, content: content.slice(0, 6000) };
       });
 
-      const turn = await runAssistant(history, text);
+      // Clarification budget: at most 5 follow-up rounds per investigation
+      const used = messages.filter((m) => m.role === "assistant" && m.analysis?.needs_clarification).length;
+      const turn = await runAssistant(history, text, used);
 
       const savedA = appendAssistantMessage(tId, turn.assistant_message, {
         assistant_message: turn.assistant_message,

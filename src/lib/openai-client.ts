@@ -129,8 +129,12 @@ function escapeInnerQuotes(s: string): string {
   return out;
 }
 
-export async function runAssistant(history: ChatTurn[], userQuery: string): Promise<AssistantTurn> {
-  let { raw, cited } = await runAssistantServer({ data: { history, query: userQuery } });
+export async function runAssistant(history: ChatTurn[], userQuery: string, clarificationsUsed = 0): Promise<AssistantTurn> {
+  const budgetNote =
+    clarificationsUsed >= 5
+      ? "\n\n[System: clarification budget (5) exhausted. Do NOT ask for clarification and do NOT set needs_clarification=true. Choose the most probable specific claim yourself, state your assumption in one sentence, and return the complete report.]"
+      : `\n\n[System: clarification budget: ${5 - clarificationsUsed} of 5 remaining.]`;
+  let { raw, cited } = await runAssistantServer({ data: { history, query: userQuery + budgetNote } });
 
   let loose = parseLoose(raw);
   // If the model answered in prose only (no report) without asking for clarification,
@@ -189,6 +193,13 @@ export async function runAssistant(history: ChatTurn[], userQuery: string): Prom
     ? parsed.clarification_suggestions.filter((s) => typeof s === "string" && s.trim()).slice(0, 3)
     : [];
   if (typeof parsed.specificity_tip !== "string") parsed.specificity_tip = undefined;
+
+  // Hard cap: never show a 6th round of clarification suggestions.
+  if (clarificationsUsed >= 5) {
+    parsed.needs_clarification = false;
+    parsed.specificity_tip = undefined;
+    parsed.clarification_suggestions = [];
+  }
 
   return parsed;
 }
