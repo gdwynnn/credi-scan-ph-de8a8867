@@ -26,7 +26,15 @@ export function TermsPrivacyDialog({
   const [reachedBottom, setReachedBottom] = useState(false);
 
   useEffect(() => {
-    if (open) setReachedBottom(false);
+    if (!open) return;
+    setReachedBottom(false);
+    const frame = window.requestAnimationFrame(() => {
+      const element = scrollRef.current;
+      if (element && element.scrollHeight <= element.clientHeight + 8) {
+        setReachedBottom(true);
+      }
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [open]);
 
   const accept = () => {
