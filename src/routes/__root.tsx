@@ -10,6 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { Toaster } from "@/components/ui/sonner";
 import { SiteHeader, SiteFooter } from "@/components/SiteChrome";
+import { FirstVisitConsent } from "@/components/TermsPrivacy";
 
 import appCss from "../styles.css?url";
 
@@ -135,6 +136,7 @@ function RootComponent() {
         <SiteFooter />
       </div>
       <Toaster position="top-center" />
+      <FirstVisitConsent />
     </QueryClientProvider>
   );
 }
