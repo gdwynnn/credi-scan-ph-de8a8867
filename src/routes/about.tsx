@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { Card } from "@/components/ui/card";
+import { TermsPrivacyButton } from "@/components/TermsPrivacy";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -45,6 +46,13 @@ function About() {
             </Card>
           ))}
         </div>
+      </section>
+      <section className="flex flex-col gap-3 border-t border-border pt-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h2 className="font-serif text-xl">Terms &amp; Privacy</h2>
+          <p className="mt-1 text-sm text-muted-foreground">Review how SURI works and handles information you provide.</p>
+        </div>
+        <TermsPrivacyButton />
       </section>
     </div>
   );
