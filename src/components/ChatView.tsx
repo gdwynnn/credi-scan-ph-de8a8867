@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { buildSummaryText, downloadSummaryImage } from "@/lib/share-summary";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle, Lightbulb, ArrowRight } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle, Copy, ImageDown, Lightbulb, ArrowRight } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -370,9 +371,9 @@ function MessageBubble({
 
       {analysis && (
         <div className="ml-11 space-y-4">
-          <div className="flex items-center justify-between gap-3 rounded-lg border bg-muted/40 px-4 py-3">
-            <div className="text-xs text-muted-foreground">
-              Export this classification result and credibility scorecard.
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/40 px-4 py-3">
+            <div className="text-xs text-muted-foreground flex-1 min-w-[10rem]">
+              Export or share this classification result.
             </div>
             <Button
               size="sm"
@@ -389,6 +390,20 @@ function MessageBubble({
             >
               <Download className="h-4 w-4" />
               Download PDF
+            </Button>
+            <Button size="sm" variant="outline" className="gap-2 shrink-0" onClick={async () => {
+              try { await navigator.clipboard.writeText(buildSummaryText(analysis)); toast.success("Summary copied — ready to paste in chats"); }
+              catch { toast.error("Could not copy to clipboard"); }
+            }}>
+              <Copy className="h-4 w-4" />
+              Copy Summary
+            </Button>
+            <Button size="sm" variant="outline" className="gap-2 shrink-0" onClick={() => {
+              try { downloadSummaryImage(analysis); toast.success("Share card saved"); }
+              catch { toast.error("Could not create image"); }
+            }}>
+              <ImageDown className="h-4 w-4" />
+              Save Image
             </Button>
           </div>
           <AnalysisResultView result={analysis} />

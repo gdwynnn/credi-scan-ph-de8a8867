@@ -86,6 +86,8 @@ export interface AnalysisResult {
   confidence: number;
   summary: string;
   reasoning?: string;
+  claim_statement?: string;
+  reality_statement?: string;
   risk_factors: RiskFactor[];
   highlighted_phrases: HighlightedPhrase[];
   suggested_sources: SuggestedSource[];

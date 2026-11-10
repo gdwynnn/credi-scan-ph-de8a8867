@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,6 +27,7 @@ import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore, contentCredibilityScor
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 import { DualGauge } from "@/components/DualGauge";
+import { sourceTier, TIER_META } from "@/lib/share-summary";
 
 function verdictAccent(tone: "success" | "warning" | "danger") {
   return tone === "success"
@@ -67,6 +68,17 @@ function SourceCard({
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="font-semibold text-sm truncate">{name}</div>
+          {(() => {
+            const t = TIER_META[sourceTier(url)];
+            return (
+              <span
+                className="inline-block mt-1 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                style={{ color: t.color, backgroundColor: `color-mix(in oklab, ${t.color} 14%, transparent)` }}
+              >
+                {t.label}
+              </span>
+            );
+          })()}
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{description}</p>
         </div>
         <ExternalLink
@@ -162,6 +174,30 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
           </div>
         </Card>
       </section>
+
+      {(result.claim_statement || result.reality_statement) && (
+        <section>
+          <SectionTitle title="Claim vs. Reality" subtitle="What is circulating compared with what verified sources show" />
+          <div className="grid gap-3 sm:grid-cols-2">
+            {result.claim_statement && (
+              <Card className="p-4 border-2 animate-in fade-in slide-in-from-left-4 duration-500" style={{ borderColor: "color-mix(in oklab, var(--color-danger) 55%, transparent)", backgroundColor: "color-mix(in oklab, var(--color-danger) 6%, var(--color-card))" }}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-danger)" }}>
+                  <AlertTriangle className="h-4 w-4" /> The Circulating Claim
+                </div>
+                <p className="text-sm mt-2 leading-relaxed">{result.claim_statement}</p>
+              </Card>
+            )}
+            {result.reality_statement && (
+              <Card className="p-4 border-2 animate-in fade-in slide-in-from-right-4 duration-500" style={{ borderColor: "color-mix(in oklab, var(--color-success) 55%, transparent)", backgroundColor: "color-mix(in oklab, var(--color-success) 6%, var(--color-card))" }}>
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "var(--color-success)" }}>
+                  <ShieldCheck className="h-4 w-4" /> The Verified Reality
+                </div>
+                <p className="text-sm mt-2 leading-relaxed">{result.reality_statement}</p>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
 
       {/* Credibility Instrument Scorecard */}
       {result.credibility_indicators && result.credibility_indicators.length > 0 && (
@@ -562,6 +598,17 @@ function IndicatorScorecard({ indicators }: { indicators: CredibilityIndicator[]
   const mixed = indicators.filter((i) => i.score === "mixed").length;
   const trust = sourceTrustScore(indicators);
   const contentScore = contentCredibilityScore(indicators);
+  const [filter, setFilter] = useState<"all" | "content" | "source" | "flags">("all");
+  const isContent = (i: CredibilityIndicator) => i.id.startsWith("C") || i.group === "content";
+  const shown = indicators.filter((i) =>
+    filter === "all" ? true : filter === "content" ? isContent(i) : filter === "source" ? !isContent(i) : i.score === "fail" || i.score === "mixed",
+  );
+  const tabs = [
+    { k: "all" as const, label: `All (${indicators.length})` },
+    { k: "content" as const, label: `Content: Credibility Coalition (${indicators.filter(isContent).length})` },
+    { k: "source" as const, label: `Source Trust: NewsGuard (${indicators.filter((i) => !isContent(i)).length})` },
+    { k: "flags" as const, label: `Needs Attention (${fails + mixed})` },
+  ];
 
   return (
     <section>
@@ -601,9 +648,24 @@ function IndicatorScorecard({ indicators }: { indicators: CredibilityIndicator[]
           </Badge>
         </div>
 
-        <div className="space-y-6">
-          {groups.map((g) => {
-            const items = indicators.filter((i) => i.group === g);
+        <div className="flex flex-wrap gap-1.5 mb-5" role="tablist">
+          {tabs.map((t) => (
+            <button
+              key={t.k}
+              role="tab"
+              aria-selected={filter === t.k}
+              onClick={() => setFilter(t.k)}
+              className={`rounded-full border px-3 py-1 text-xs font-medium transition-all duration-300 ${filter === t.k ? "bg-foreground text-background border-foreground scale-[1.03]" : "bg-card text-muted-foreground hover:text-foreground hover:border-foreground/40"}`}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        <div key={filter} className="space-y-6 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          {shown.length === 0 && <p className="text-sm text-muted-foreground">No indicators in this view.</p>}
+          {[...new Set(groups)].map((g) => {
+            const items = shown.filter((i) => i.group === g);
             if (items.length === 0) return null;
             return (
               <div key={g}>
