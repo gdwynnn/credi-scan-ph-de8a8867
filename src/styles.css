@@ -137,13 +137,15 @@
 }
 :root { --sb-idle: transparent; --sb-show: oklch(0.45 0.03 258 / 35%); --sb-hover: oklch(0.45 0.03 258 / 60%); }
 .dark { --sb-show: oklch(0.95 0.01 240 / 22%); --sb-hover: oklch(0.95 0.01 240 / 42%); }
-* {
-  --sb-thumb: var(--sb-idle);
-  scrollbar-width: thin;
-  scrollbar-color: var(--sb-thumb) transparent;
-  transition: --sb-thumb .45s cubic-bezier(.22,1,.36,1);
+@layer base {
+  * {
+    --sb-thumb: var(--sb-idle);
+    scrollbar-width: thin;
+    scrollbar-color: var(--sb-thumb) transparent;
+    transition: --sb-thumb .45s cubic-bezier(.22,1,.36,1);
+  }
+  *:hover { --sb-thumb: var(--sb-show); }
 }
-*:hover, *.is-scrolling, html:hover { --sb-thumb: var(--sb-show); }
 ::-webkit-scrollbar { width: 8px; height: 8px; background: transparent; }
 ::-webkit-scrollbar-track, ::-webkit-scrollbar-corner { background: transparent; }
 ::-webkit-scrollbar-thumb {
