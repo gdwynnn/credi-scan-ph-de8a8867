@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -27,7 +27,6 @@ import { INSTRUMENT_NAME, VERDICT_META, sourceTrustScore, contentCredibilityScor
 import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 import { DualGauge } from "@/components/DualGauge";
-import { useState } from "react";
 import { sourceTier, TIER_META } from "@/lib/share-summary";
 
 function verdictAccent(tone: "success" | "warning" | "danger") {
