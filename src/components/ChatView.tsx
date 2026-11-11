@@ -1,8 +1,11 @@
+import type { AnalysisResult } from "@/lib/analysis-types";
 import { useEffect, useRef, useState } from "react";
 import { buildSummaryText, downloadSummaryImage } from "@/lib/share-summary";
 import { useNavigate } from "@tanstack/react-router";
-import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle, Copy, ImageDown, Lightbulb, ArrowRight } from "lucide-react";
+import { Loader2, Send, Sparkles, ShieldCheck, FileText, Newspaper, Download, Shuffle, Copy, ImageDown, Lightbulb, ArrowRight, MessageCircleQuestion, Printer } from "lucide-react";
 import { downloadReportPdf } from "@/lib/report-pdf";
+import { openDefenseBrief } from "@/lib/defense-brief";
+import { classifyTopic, TOPIC_META } from "@/lib/topics";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -405,10 +408,46 @@ function MessageBubble({
               <ImageDown className="h-4 w-4" />
               Save Image
             </Button>
+            <Button size="sm" variant="outline" className="gap-2 shrink-0" onClick={() => {
+              if (!openDefenseBrief(analysis, article ?? null)) toast.error("Allow pop-ups to open the brief");
+            }}>
+              <Printer className="h-4 w-4" />
+              Defense Brief
+            </Button>
           </div>
           <AnalysisResultView result={analysis} />
+          <FollowUps analysis={analysis} onPick={onPick} disabled={disabled} />
         </div>
       )}
+    </div>
+  );
+}
+
+function fallbackFollowUps(a: AnalysisResult): string[] {
+  const topic = TOPIC_META[classifyTopic(`${a.claim_statement ?? ""} ${a.input_text}`, a.topic_category)].label;
+  return a.verdict === "credible"
+    ? ["What is the official announcement about this?", "When does this take effect?", `Are there related ${topic} updates?`]
+    : ["What actually happened based on official sources?", "Where did this claim first spread?", "How can I spot similar fake posts?"];
+}
+
+function FollowUps({ analysis, onPick, disabled }: { analysis: AnalysisResult; onPick?: (s: string) => void; disabled?: boolean }) {
+  if (!onPick) return null;
+  const qs = (analysis.follow_up_questions?.filter(Boolean).slice(0, 3) ?? []);
+  const list = qs.length ? qs : fallbackFollowUps(analysis);
+  return (
+    <div className="space-y-2 animate-enter-up">
+      <div className="flex items-center gap-2 text-xs uppercase tracking-widest text-muted-foreground">
+        <MessageCircleQuestion className="h-3.5 w-3.5" /> Continue investigating
+      </div>
+      <div className="flex flex-wrap gap-2">
+        {list.map((q, i) => (
+          <button key={q} disabled={disabled} onClick={() => onPick(q)} style={{ animationDelay: `${i * 70}ms` }}
+            className="starter-card group inline-flex items-center gap-2 rounded-full border bg-card px-4 py-2 text-sm text-left animate-enter-up disabled:opacity-60">
+            {q}
+            <ArrowRight className="h-3.5 w-3.5 text-muted-foreground transition-transform group-hover:translate-x-1" />
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
