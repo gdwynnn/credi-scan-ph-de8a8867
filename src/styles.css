@@ -158,14 +158,6 @@
 html { scroll-behavior: smooth; }
 
 /* ---------- Motion ---------- */
-@keyframes page-arrive {
-  from { opacity: 0; transform: translateY(8px) scale(.995); filter: blur(2px); }
-  to { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); }
-}
-.page-transition {
-  animation: page-arrive 420ms cubic-bezier(.2, .8, .2, 1) both;
-}
-
 @keyframes enter-up { from { opacity: 0; transform: translateY(14px) scale(.98); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
 @keyframes ping-slow { 0% { transform: scale(1); opacity: .6; } 100% { transform: scale(1.9); opacity: 0; } }
