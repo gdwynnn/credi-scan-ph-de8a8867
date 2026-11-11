@@ -124,6 +124,8 @@ export const SCHEMA = `Schema:
     "highlighted_phrases": [{ "phrase": string (exact substring of article.body), "reason": string }],
     "suggested_sources": [{ "name": string, "url": string, "category": "fact-checker"|"mainstream"|"government"|"international", "search_query": string }],
     "verification_links": [{ "site_name": string, "label": string, "url": string, "type": "supporting"|"debunking"|"context" }],
+    "topic_category": "government"|"education"|"social_aid"|"disaster"|"health"|"economy"|"other",
+    "follow_up_questions": string[] (exactly 3 short, natural next questions the user may want to investigate about this same topic, in the user's language),
     "credibility_indicators": [ { "id": "C1".."C8" | "N1".."N9", "group": "content"|"credibility"|"transparency", "name": string, "score": "pass"|"fail"|"mixed"|"not_applicable", "justification": string } ]
   }
 }

@@ -7,6 +7,8 @@ import {
   Download,
   Upload,
   Eraser,
+  Search,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +28,9 @@ export function ConversationSidebar() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const navigate = useNavigate();
   const fileRef = useRef<HTMLInputElement>(null);
+  const [filter, setFilter] = useState("");
+  const fq = filter.trim().toLowerCase();
+  const visible = fq ? threads.filter((t) => t.title.toLowerCase().includes(fq)) : threads;
 
   useEffect(() => {
     setThreads(listThreads());
@@ -124,13 +129,36 @@ export function ConversationSidebar() {
           />
         </div>
       </div>
+      {threads.length > 0 && (
+        <div className="px-3 pt-3">
+          <div className="relative">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <input
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              placeholder="Filter investigations…"
+              aria-label="Filter investigations"
+              className="w-full h-8 rounded-md border bg-background pl-8 pr-7 text-xs outline-none focus:ring-2 focus:ring-ring transition-shadow"
+            />
+            {filter && (
+              <button onClick={() => setFilter("")} aria-label="Clear filter" className="absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:text-foreground">
+                <X className="h-3.5 w-3.5" />
+              </button>
+            )}
+          </div>
+          {fq && <div className="text-[11px] text-muted-foreground mt-1.5 px-1">{visible.length} of {threads.length} match</div>}
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
+        {fq && visible.length === 0 && (
+          <div className="text-xs text-muted-foreground px-3 py-4 text-center">No investigations match “{filter}”.</div>
+        )}
         {threads.length === 0 && (
           <div className="text-xs text-muted-foreground px-3 py-4 text-center">
             No conversations yet. Start a new investigation to see it here.
           </div>
         )}
-        {threads.map((c) => {
+        {visible.map((c) => {
           const active = pathname === `/c/${c.id}`;
           return (
             <div

@@ -93,6 +93,8 @@ export interface AnalysisResult {
   suggested_sources: SuggestedSource[];
   verification_links?: VerificationLink[];
   credibility_indicators?: CredibilityIndicator[];
+  topic_category?: string;
+  follow_up_questions?: string[];
   input_text: string;
   input_url?: string | null;
   created_at?: string;

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { listThreads, loadMessages, subscribe } from "@/lib/local-chats";
 import { VERDICT_META, type Verdict } from "@/lib/analysis-types";
+import { classifyTopic, TOPIC_META, type Topic } from "@/lib/topics";
 
 export const Route = createFileRoute("/dashboard")({
   head: () => ({
@@ -20,8 +21,9 @@ export const Route = createFileRoute("/dashboard")({
   component: Dashboard,
 });
 
-interface Row { threadId: string; title: string; claim: string; verdict: Verdict; confidence: number; date: string; source?: string }
+interface Row { threadId: string; title: string; claim: string; verdict: Verdict; confidence: number; date: string; source?: string; topic: Topic }
 
+const PALETTE = ["var(--color-accent)", "var(--color-success)", "var(--color-warning)", "var(--color-danger)", "var(--color-primary)", "var(--color-muted-foreground)"];
 const TONE: Record<Verdict, string> = { credible: "text-success", suspicious: "text-warning", likely_fake: "text-danger" };
 
 function collect(): Row[] {
@@ -35,6 +37,7 @@ function collect(): Row[] {
         claim: m.analysis?.article?.headline || a.input_text || t.title,
         verdict: a.verdict, confidence: a.confidence ?? 0, date: m.created_at,
         source: m.analysis?.article?.source,
+        topic: classifyTopic(`${m.analysis?.article?.headline ?? ""} ${a.claim_statement ?? ""} ${a.input_text ?? ""} ${t.title}`, a.topic_category),
       });
     }
   }
@@ -45,11 +48,17 @@ function Dashboard() {
   const [rows, setRows] = useState<Row[]>([]);
   const [q, setQ] = useState("");
   const [filter, setFilter] = useState<Verdict | "all">("all");
+  const [topic, setTopic] = useState<Topic | "all">("all");
   useEffect(() => { setRows(collect()); return subscribe(() => setRows(collect())); }, []);
 
   const shown = useMemo(() => rows.filter((r) =>
-    (filter === "all" || r.verdict === filter) &&
-    (`${r.claim} ${r.title} ${r.source ?? ""}`).toLowerCase().includes(q.toLowerCase())), [rows, q, filter]);
+    (filter === "all" || r.verdict === filter) && (topic === "all" || r.topic === topic) &&
+    (`${r.claim} ${r.title} ${r.source ?? ""}`).toLowerCase().includes(q.toLowerCase())), [rows, q, filter, topic]);
+  const topicCounts = useMemo(() => {
+    const c = new Map<Topic, number>();
+    rows.forEach((r) => c.set(r.topic, (c.get(r.topic) ?? 0) + 1));
+    return [...c.entries()].sort((a, b) => b[1] - a[1]);
+  }, [rows]);
 
   const count = (v: Verdict) => rows.filter((r) => r.verdict === v).length;
   const avg = rows.length ? Math.round(rows.reduce((s, r) => s + r.confidence, 0) / rows.length) : 0;
@@ -69,6 +78,31 @@ function Dashboard() {
         <Stat label="Likely fake" value={count("likely_fake")} tone="text-danger" />
         <Stat label="Avg. confidence" value={`${avg}%`} />
       </div>
+
+      {rows.length > 0 && (
+        <Card className="p-5 space-y-4">
+          <div className="flex items-baseline justify-between">
+            <h2 className="font-semibold">Topic breakdown</h2>
+            <span className="text-xs text-muted-foreground">Tap a topic to filter</span>
+          </div>
+          <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
+            {topicCounts.map(([t, n], i) => (
+              <div key={t} title={`${TOPIC_META[t].label}: ${n}`} className="h-full transition-all duration-700"
+                style={{ width: `${(n / rows.length) * 100}%`, background: PALETTE[i % PALETTE.length] }} />
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={() => setTopic("all")} className={`rounded-full px-3 py-1 text-xs border transition-colors ${topic === "all" ? "bg-foreground text-background" : "hover:bg-muted"}`}>All topics</button>
+            {topicCounts.map(([t, n], i) => (
+              <button key={t} onClick={() => setTopic(topic === t ? "all" : t)}
+                className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border transition-colors ${topic === t ? "bg-foreground text-background" : "hover:bg-muted"}`}>
+                <span className="h-2 w-2 rounded-full" style={{ background: PALETTE[i % PALETTE.length] }} />
+                {TOPIC_META[t].emoji} {TOPIC_META[t].label} · {Math.round((n / rows.length) * 100)}%
+              </button>
+            ))}
+          </div>
+        </Card>
+      )}
 
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
@@ -97,7 +131,7 @@ function Dashboard() {
                 <Card className="p-4 hover:border-foreground transition-colors flex items-center gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="font-medium truncate">{r.claim}</div>
-                    <div className="text-xs text-muted-foreground truncate">{r.source ? `${r.source} · ` : ""}{new Date(r.date).toLocaleString()}</div>
+                    <div className="text-xs text-muted-foreground truncate">{TOPIC_META[r.topic].emoji} {TOPIC_META[r.topic].label} · {r.source ? `${r.source} · ` : ""}{new Date(r.date).toLocaleString()}</div>
                   </div>
                   <div className="text-right shrink-0">
                     <div className={`text-sm font-medium ${TONE[r.verdict]}`}>{VERDICT_META[r.verdict].label}</div>
