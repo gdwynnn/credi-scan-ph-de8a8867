@@ -23,6 +23,7 @@ export const Route = createFileRoute("/dashboard")({
 
 interface Row { threadId: string; title: string; claim: string; verdict: Verdict; confidence: number; date: string; source?: string; topic: Topic }
 
+const PALETTE = ["var(--color-accent)", "var(--color-success)", "var(--color-warning)", "var(--color-danger)", "var(--color-primary)", "var(--color-muted-foreground)"];
 const TONE: Record<Verdict, string> = { credible: "text-success", suspicious: "text-warning", likely_fake: "text-danger" };
 
 function collect(): Row[] {
@@ -87,7 +88,7 @@ function Dashboard() {
           <div className="flex h-3 w-full overflow-hidden rounded-full bg-muted">
             {topicCounts.map(([t, n], i) => (
               <div key={t} title={`${TOPIC_META[t].label}: ${n}`} className="h-full transition-all duration-700"
-                style={{ width: `${(n / rows.length) * 100}%`, background: `var(--chart-${(i % 5) + 1})` }} />
+                style={{ width: `${(n / rows.length) * 100}%`, background: PALETTE[i % PALETTE.length] }} />
             ))}
           </div>
           <div className="flex flex-wrap gap-2">
@@ -95,7 +96,7 @@ function Dashboard() {
             {topicCounts.map(([t, n], i) => (
               <button key={t} onClick={() => setTopic(topic === t ? "all" : t)}
                 className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs border transition-colors ${topic === t ? "bg-foreground text-background" : "hover:bg-muted"}`}>
-                <span className="h-2 w-2 rounded-full" style={{ background: `var(--chart-${(i % 5) + 1})` }} />
+                <span className="h-2 w-2 rounded-full" style={{ background: PALETTE[i % PALETTE.length] }} />
                 {TOPIC_META[t].emoji} {TOPIC_META[t].label} · {Math.round((n / rows.length) * 100)}%
               </button>
             ))}
