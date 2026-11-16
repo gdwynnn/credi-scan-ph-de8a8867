@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Check, Search, Globe, Scale, BarChart3 } from "lucide-react";
+import { Check, Search, Globe, Scale, BarChart3, Radio } from "lucide-react";
 
 const STAGES = [
   { icon: Search, title: "Extracting the claim", detail: "Finding the main statement, people, places and dates" },
@@ -9,12 +9,23 @@ const STAGES = [
 ];
 // Approximate pacing (ms) at which each stage starts; last stage waits for the real answer.
 const STARTS = [0, 4000, 16000, 26000];
+const TICKER_UPDATES = [
+  "Searching for matching coverage and official statements…",
+  "Comparing evidence across available sources…",
+  "Assessing the claim and publisher signals…",
+  "Preparing findings and source links…",
+];
 
 export function InvestigationStepper() {
   const [elapsed, setElapsed] = useState(0);
+  const [tickerIndex, setTickerIndex] = useState(0);
   useEffect(() => {
     const t0 = Date.now();
     const id = setInterval(() => setElapsed(Date.now() - t0), 250);
+    return () => clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const id = setInterval(() => setTickerIndex((index) => (index + 1) % TICKER_UPDATES.length), 2800);
     return () => clearInterval(id);
   }, []);
   const active = STARTS.reduce((acc, s, i) => (elapsed >= s ? i : acc), 0);
@@ -24,6 +35,10 @@ export function InvestigationStepper() {
       <div className="flex items-center justify-between mb-3">
         <span className="shimmer-text text-sm font-semibold">Investigating sources</span>
         <span className="font-mono text-xs text-muted-foreground">{(elapsed / 1000).toFixed(0)}s</span>
+      </div>
+      <div className="newsroom-ticker mb-4 flex min-h-10 items-center gap-2 border-y border-border/70 px-2 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
+        <Radio className="h-3.5 w-3.5 shrink-0 text-accent" />
+        <span key={tickerIndex} className="ticker-message">{TICKER_UPDATES[tickerIndex]}</span>
       </div>
       <ol className="space-y-3">
         {STAGES.map((s, i) => {
