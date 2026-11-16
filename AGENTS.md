@@ -2,3 +2,4 @@
 - Prompt lives in src/lib/assistant-prompt.ts: Role Prompting + Structured Evidence-Guided Prompting, scored with the NewsGuard 9-criteria instrument.
 - Scorecard is hybrid: C1-C8 (group content, Credibility Coalition) + N1-N9 (NewsGuard) in credibility_indicators; scores computed in analysis-types.ts — keeps text and source layers separable.
 - Route changes render immediately without a page-entry animation; shared navigation stays stable during page changes.
+- Publisher favicon imports live in `src/lib/publisher-icons.ts` so source cards share one locally hosted, fallback-safe icon mapping.
