@@ -28,6 +28,7 @@ import { PH_TRUSTED_SOURCES } from "@/lib/trusted-sources";
 import { extractFeatures } from "@/lib/nlp-features";
 import { DualGauge } from "@/components/DualGauge";
 import { sourceTier, TIER_META } from "@/lib/share-summary";
+import { publisherIcon } from "@/lib/publisher-icons";
 
 function verdictAccent(tone: "success" | "warning" | "danger") {
   return tone === "success"
@@ -57,6 +58,7 @@ function SourceCard({
   url: string;
   accent?: string;
 }) {
+  const icon = publisherIcon(name, url);
   return (
     <a
       href={url}
@@ -66,7 +68,15 @@ function SourceCard({
       style={accent ? { borderColor: accent } : undefined}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
+        <div className="flex min-w-0 items-start gap-3">
+          {icon ? (
+            <img src={icon} alt="" className="mt-0.5 h-8 w-8 shrink-0 rounded-md border bg-background object-contain p-1" loading="lazy" />
+          ) : (
+            <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-md border bg-muted font-serif text-sm font-bold text-muted-foreground" aria-hidden="true">
+              {name.slice(0, 1).toUpperCase()}
+            </span>
+          )}
+          <div className="min-w-0">
           <div className="font-semibold text-sm truncate">{name}</div>
           {(() => {
             const t = TIER_META[sourceTier(url)];
@@ -80,7 +90,7 @@ function SourceCard({
             );
           })()}
           <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{description}</p>
-        </div>
+          </div>
         <ExternalLink
           className="h-4 w-4 shrink-0 text-muted-foreground group-hover:text-foreground"
           style={accent ? { color: accent } : undefined}
@@ -127,11 +137,19 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
   ];
   const barColor = (v: number) =>
     v >= 50 ? "var(--color-danger)" : v >= 25 ? "var(--color-warning)" : "var(--color-success)";
+  const investigatedAt = result.created_at ? new Date(result.created_at) : null;
+  const mastheadDate = investigatedAt && !Number.isNaN(investigatedAt.getTime())
+    ? investigatedAt.toLocaleString("en-PH", { timeZone: "Asia/Manila", dateStyle: "medium", timeStyle: "short" })
+    : "LIVE CHECK";
 
   return (
-    <div className="space-y-10">
+    <div className="editorial-page space-y-10">
       {/* Classification Result */}
       <section>
+        <div className="editorial-masthead mb-4 flex flex-wrap items-center justify-between gap-2 border-y-2 border-double py-2 text-[10px] font-semibold uppercase text-muted-foreground">
+          <span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-accent" /> SURI Research Desk <span aria-hidden="true">·</span> Philippines</span>
+          <time dateTime={investigatedAt && !Number.isNaN(investigatedAt.getTime()) ? investigatedAt.toISOString() : undefined}>{mastheadDate}</time>
+        </div>
         <SectionTitle title="Classification Result" />
         {result.credibility_indicators && result.credibility_indicators.length > 0 && (
           <div className="mb-4">
@@ -152,20 +170,22 @@ export function AnalysisResultView({ result }: { result: AnalysisResult }) {
           }}
         >
           <div className="flex items-start gap-4">
-            <Icon className="h-7 w-7 shrink-0" style={{ color: accent }} />
+            <Icon className="mt-1 h-7 w-7 shrink-0" style={{ color: accent }} />
             <div className="flex-1">
               <div className="font-bold text-lg">{meta.label}</div>
               <p className="text-sm text-muted-foreground">{meta.description}</p>
-              <div className="mt-4">
-                <div className="flex items-center justify-between text-sm mb-2">
-                  <span className="font-medium">Confidence Score</span>
-                  <span className="font-mono font-semibold">{result.confidence}%</span>
+              <div className="mt-4 flex items-center gap-3">
+                <div className="relative h-16 w-16 shrink-0" role="img" aria-label={`Confidence score: ${result.confidence}%`}>
+                  <svg viewBox="0 0 64 64" className="h-full w-full -rotate-90" aria-hidden="true">
+                    <circle cx="32" cy="32" r="26" fill="none" stroke="var(--color-muted)" strokeWidth="5" />
+                    <circle cx="32" cy="32" r="26" fill="none" stroke={accent} strokeWidth="5" strokeLinecap="round" strokeDasharray={2 * Math.PI * 26} strokeDashoffset={2 * Math.PI * 26 * (1 - Math.min(100, Math.max(0, result.confidence)) / 100)} className="confidence-ring" />
+                  </svg>
+                  <span className="absolute inset-0 grid place-items-center font-mono text-sm font-bold">{result.confidence}%</span>
                 </div>
-                <Progress
-                  value={result.confidence}
-                  className="h-2 bg-muted"
-                  style={{ ["--progress-color" as never]: accent }}
-                />
+                <div>
+                  <div className="text-sm font-semibold">Confidence</div>
+                  <div className="text-xs text-muted-foreground">How strongly the available evidence supports this classification</div>
+                </div>
               </div>
               {result.summary && (
                 <p className="text-sm mt-4 leading-relaxed">{result.summary}</p>

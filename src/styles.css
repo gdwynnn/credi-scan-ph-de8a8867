@@ -157,6 +157,22 @@
 ::-webkit-scrollbar-thumb:hover { background-color: var(--sb-hover); }
 html { scroll-behavior: smooth; }
 
+/* Editorial surface details: restrained paper ruling and newsroom motion. */
+.editorial-page {
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0,
+    transparent 31px,
+    color-mix(in oklab, var(--color-border) 16%, transparent) 32px
+  );
+  background-position: 0 12px;
+}
+.editorial-masthead { border-color: color-mix(in oklab, var(--color-border) 85%, var(--color-accent)); }
+.confidence-ring { transition: stroke-dashoffset 900ms cubic-bezier(.22,1,.36,1); }
+.ticker-message { animation: ticker-arrive .35s ease-out both; }
+@keyframes ticker-arrive { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { .ticker-message { animation: none; } }
+
 /* ---------- Motion ---------- */
 @keyframes enter-up { from { opacity: 0; transform: translateY(14px) scale(.98); filter: blur(4px); } to { opacity: 1; transform: none; filter: none; } }
 @keyframes float { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
